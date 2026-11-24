@@ -36,6 +36,9 @@ jobs:
       - name: Ruff format check
         run: uv run ruff format --check .
 
+      - name: File size (max 400 non-blank lines for .py/.scss; ESLint covers .ts/.html)
+        run: uv run python tools/check_file_length.py
+
       - name: Architecture boundaries (import-linter)
         run: uv run lint-imports
 
@@ -162,8 +165,8 @@ jobs:
       - name: Prettier
         run: pnpm format:check
 
-      - name: Lint, typecheck, unit tests (all TS projects)
-        run: pnpm nx run-many -t lint typecheck test --outputStyle=static
+      - name: Lint (ESLint + Stylelint/BEM), typecheck, unit tests (all TS projects)
+        run: pnpm nx run-many -t lint lint-styles typecheck test --outputStyle=static
 
       - name: Production builds (Angular budgets enforced)
         run: pnpm nx run-many -t build --outputStyle=static

@@ -77,6 +77,24 @@ export default [
                     ],
                 },
             ],
+            // Every function states its return type (expressions passed where a type is
+            // already known, e.g. callbacks and typed arrow consts, are exempt).
+            '@typescript-eslint/explicit-function-return-type': [
+                'error',
+                {
+                    allowExpressions: true,
+                    allowTypedFunctionExpressions: true,
+                    allowHigherOrderFunctions: true,
+                    allowDirectConstAssertionInArrowFunctions: true,
+                },
+            ],
+            '@typescript-eslint/explicit-module-boundary-types': 'error',
+            // Size: small files and small functions (docs/engineering/typescript.md#complexity-and-size).
+            'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+            'max-lines-per-function': [
+                'error',
+                { max: 50, skipBlankLines: true, skipComments: true, IIFEs: true },
+            ],
             complexity: ['error', 10],
             'max-depth': ['error', 4],
             'max-params': ['error', 6],
@@ -86,6 +104,8 @@ export default [
         files: ['**/*.spec.ts', '**/*.test.ts', '**/*-e2e/**/*.ts'],
         rules: {
             '@typescript-eslint/no-non-null-assertion': 'off',
+            '@typescript-eslint/explicit-function-return-type': 'off',
+            'max-lines-per-function': 'off',
             'max-params': 'off',
         },
     },

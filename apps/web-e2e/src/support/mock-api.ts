@@ -15,7 +15,7 @@ export const degraded = {
 export async function mockApi(
     page: Page,
     readiness: { body: unknown; status: number } = { body: healthy, status: 200 },
-) {
+): Promise<Record<string, string>[]> {
     const seen: Record<string, string>[] = [];
     await page.route('**/api/v1/**', async (route) => {
         const req = route.request();

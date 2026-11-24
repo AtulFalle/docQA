@@ -95,6 +95,14 @@
         ],
         "parallel": false
       }
+    },
+    "lint-styles": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": ["{projectRoot}/src/**/*.scss", "{workspaceRoot}/stylelint.config.mjs"],
+      "options": {
+        "command": "stylelint \"apps/web/src/**/*.scss\""
+      }
     }
   }
 }
