@@ -9,6 +9,7 @@
 | `CI / typecheck` | `mypy --strict` passes on all packages |
 | `CI / js` | Prettier check; ESLint incl. Nx module boundaries; TypeScript typecheck; Angular (Vitest) and Nest (Jest) unit tests; production builds incl. Angular budgets. Runs `nx affected` |
 | `CI / e2e-web` | Playwright e2e for `apps/web`, with the API mocked via `page.route` |
+| `CI / contracts` | `make contracts-check`: regenerates both OpenAPI documents, the ai-api client types and the event models (TS + pydantic) and fails if the committed copy differs |
 | `CI / test` | Applies Prisma migrations (`pnpm db:migrate`), then checks drift (`pnpm db:drift`) before Python tests; Python mirror contract test; unit + integration tests (incl. cross-tenant RLS leak test) against real Postgres; coverage >= floor |
 | `CI / eval` | Golden dataset is valid against the sample corpus (later: retrieval metrics have not regressed) |
 | `CI / docker` | Both images build; compose file is valid |

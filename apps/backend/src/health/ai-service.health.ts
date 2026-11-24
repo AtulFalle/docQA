@@ -1,22 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable } from '@nestjs/common';
 import { type HealthIndicatorResult, HealthIndicatorService } from '@nestjs/terminus';
-import { type Env } from '../config/env';
+import { AI_SERVICE_CLIENT, type AiServiceClient } from '../ai-service/ai-service.client';
+
+const TIMEOUT_MS = 2000;
 
 @Injectable()
 export class AiServiceHealthIndicator {
     constructor(
         private readonly healthIndicatorService: HealthIndicatorService,
-        private readonly config: ConfigService<Env, true>,
+        @Inject(AI_SERVICE_CLIENT) private readonly client: AiServiceClient,
     ) {}
 
     async isHealthy(key: string): Promise<HealthIndicatorResult> {
         const indicator = this.healthIndicatorService.check(key);
-        const baseUrl = this.config.get('AI_SERVICE_URL', { infer: true });
         try {
-            const res = await fetch(`${baseUrl}/healthz`, { signal: AbortSignal.timeout(2000) });
-            if (!res.ok) {
-                return indicator.down({ message: `AI service responded with HTTP ${res.status}` });
+            const { response } = await this.client.GET('/healthz', {
+                signal: AbortSignal.timeout(TIMEOUT_MS),
+            });
+            if (!response.ok) {
+                return indicator.down({
+                    message: `AI service responded with HTTP ${response.status}`,
+                });
             }
             return indicator.up();
         } catch (err) {

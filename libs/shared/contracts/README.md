@@ -38,3 +38,17 @@ Wire formats: ids are `Id` (UUID string), timestamps are `IsoDateTime` (ISO-8601
 3. Update the NestJS handler and the Angular caller in the same PR.
 4. Backend: validate incoming payloads at the edge with a zod schema typed against the model (`z.ZodType<CreateDocumentRequest>`), so runtime validation and the shared type can't drift.
 5. Values shared with Python (statuses, permissions) must match the `StrEnum`s in `libs/py-core`.
+
+## Generated contracts (`make contracts`)
+
+Some contracts are generated rather than written by hand. Run `make contracts` after changing any of their sources and commit the output. CI runs `make contracts-check`, which fails if the committed output is stale.
+
+| Source | Generated output |
+| --- | --- |
+| ai-api routes and pydantic schemas (`services/ai-api`) | `openapi/ai-api.openapi.json` → `src/generated/ai-api.ts` (exported as the `AiApi` namespace) |
+| NestJS controllers' `@ApiOkResponse({ schema: contractRef('X') })` + the models in `src/lib` | `openapi/backend.openapi.json`: paths from Swagger, schemas from these TypeScript models |
+| `events/<name>.v<N>.schema.json` (JSON Schema 2020-12) | `src/generated/<name>.v<N>.ts` and pydantic `libs/py-core/src/docqa_core/events/<name>_v<N>.py` |
+
+- **Never edit** files under `src/generated`, `openapi/` or `docqa_core/events/*_v*.py`; change the source and regenerate.
+- **ai-api client (backend only):** inject `AI_SERVICE_CLIENT` (an `openapi-fetch` client typed by `AiApi.paths`). Paths, params and bodies are checked at compile time, so an ai-api change that breaks the backend fails `typecheck`.
+- **Events:** properties are camelCase on the wire; Python gets snake_case fields with camelCase aliases. A breaking change means a new version file (`.v2.schema.json`); keep v1 until every consumer has moved.

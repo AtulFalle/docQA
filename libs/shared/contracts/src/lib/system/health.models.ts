@@ -1,8 +1,7 @@
-/**
- * Public HTTP contracts shared by the Angular app (apps/web) and the NestJS backend (apps/backend).
- * Types only — no runtime code — so both sides can import them without bundling server code.
- */
+// Public HTTP contracts shared by the Angular app (apps/web) and the NestJS backend (apps/backend).
+// Types only — no runtime code — so both sides can import them without bundling server code.
 
+/** Overall health of a service. */
 export type HealthStatus = 'ok' | 'error' | 'degraded' | 'shutting_down';
 
 /** GET /api/v1/health — liveness. */
