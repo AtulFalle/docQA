@@ -11,6 +11,7 @@ setup: ## Install workspace deps and git hooks
 	pnpm install
 	uv sync --all-packages --group dev
 	uv run pre-commit install --install-hooks
+	git config commit.template .gitmessage
 
 up: ## Start core infra (Postgres, Redis, MinIO, Qdrant, Temporal, Langfuse, LGTM)
 	$(COMPOSE) up -d

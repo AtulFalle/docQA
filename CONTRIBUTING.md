@@ -10,9 +10,10 @@
 
 Commit subjects use the form `type(scope): summary`, in the imperative and under 72 characters.
 
-- Types: `feat`, `fix`, `docs`, `refactor`, `test`, `perf`, `build`, `ci`, `chore`.
-- Scopes are package or area names, for example `core`, `ai-api`, `ingestion-worker`, `web`, `backend`, `eval`, `infra`, `migrations`.
+- Types: `feat`, `fix`, `perf`, `refactor`, `test`, `docs`, `build`, `ci`, `chore`, `revert`.
+- Scopes (optional): `web`, `backend`, `ai-api`, `worker`, `core`, `contracts`, `db`, `eval`, `infra`, `ci`, `deps`, `docs`, `m0`. The `commit-msg` hook and the PR title check reject any other scope.
 - Use a body for the why, and add `BREAKING CHANGE:` in the footer when needed.
+- `git commit` opens [.gitmessage](.gitmessage) as the template (`make setup` sets it; or run `git config commit.template .gitmessage`).
 
 Examples:
 

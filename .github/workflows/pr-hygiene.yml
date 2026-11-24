@@ -28,10 +28,14 @@ jobs:
             ci
             chore
             revert
+          # Keep in sync with .gitmessage and the commit-msg hook in .pre-commit-config.yaml.
           scopes: |
-            api
-            workers
+            web
+            backend
+            ai-api
+            worker
             core
+            contracts
             db
             eval
             infra

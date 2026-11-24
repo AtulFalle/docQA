@@ -37,7 +37,19 @@ repos:
     hooks:
       - id: conventional-pre-commit
         stages: [commit-msg]
-        args: [feat, fix, perf, refactor, test, docs, build, ci, chore, revert]
+        # Keep types and scopes in sync with .gitmessage and .github/workflows/pr-hygiene.yml.
+        args:
+          - --scopes=web,backend,ai-api,worker,core,contracts,db,eval,infra,ci,deps,docs,m0
+          - feat
+          - fix
+          - perf
+          - refactor
+          - test
+          - docs
+          - build
+          - ci
+          - chore
+          - revert
 
   # Slower checks run against the project environments (uv / pnpm), on push rather than every commit.
   - repo: local
@@ -57,7 +69,7 @@ repos:
         stages: [pre-push]
       - id: mypy
         name: mypy (strict)
-        entry: uv run mypy libs/core/src api/src workers/src eval/src
+        entry: uv run mypy libs/py-core/src services/ai-api/src services/ingestion-worker/src eval/src
         language: system
         pass_filenames: false
         types: [python]
