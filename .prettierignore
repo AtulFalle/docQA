@@ -5,6 +5,7 @@ pnpm-lock.yaml
 uv.lock
 .nx
 .angular
+.import_linter_cache
 apps/backend/src/generated
 **/*.md
 **/*.py

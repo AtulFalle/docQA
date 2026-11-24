@@ -20,7 +20,10 @@ export class AiServiceHealthIndicator {
             }
             return indicator.up();
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'AI service unreachable';
+            const message =
+                err instanceof Error || err instanceof DOMException
+                    ? err.message
+                    : 'AI service unreachable';
             return indicator.down({ message });
         }
     }

@@ -1,0 +1,19 @@
+
+# <type>(<scope>): <summary>
+#
+# Subject: imperative, lowercase start, no trailing period, <= 72 chars.
+#   e.g. feat(backend): add document upload endpoint
+#
+# type:  feat | fix | perf | refactor | test | docs | build | ci | chore | revert
+# scope: web | backend | ai-api | worker | core | contracts | db | eval | infra | ci | deps | docs | m0
+#        (optional; use the package or area the change lives in)
+#
+# Body (wrap at 72): WHY the change is needed and what it does at a high
+# level. Not a file list; the diff shows that.
+#
+# Footer (optional, one per line):
+#   Refs: #123
+#   Closes: #123
+#   BREAKING CHANGE: <what breaks and how to migrate>
+#
+# Lines starting with '#' are ignored.

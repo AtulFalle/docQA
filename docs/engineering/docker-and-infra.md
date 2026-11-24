@@ -5,7 +5,6 @@
 - **Multi-stage**: build deps in a `builder` stage (`uv sync --no-dev --no-editable`), copy only the venv and needed files into a slim runtime stage. No compilers, git or uv in runtime. **[Review]**
 - **Non-root**: create a fixed-uid system user and `USER app`. **[Enforced: hadolint DL3002; Review]**
 - **Pinned tags** on every `FROM`; prefer `python:3.12-slim-bookworm` with a version tag, and a digest for production. No `latest` in anything we deploy. **[Enforced: hadolint DL3006/DL3007]**
-  - Known dev-only exception: `infra/docker/docker-compose.yml` uses `minio/minio:latest` and `minio/mc:latest` for local convenience. Do not copy this pattern; pin them if compose is ever reused for staging. Dependabot and review treat it as a waived finding.
 - **HEALTHCHECK** defined in every service image (see `services/ai-api/Dockerfile`); compose services use `healthcheck` and `depends_on: condition: service_healthy`. **[Review]**
 - **One process per container**: AI service, worker, backend are separate containers/commands. No supervisord, no cron inside.
 - `PYTHONUNBUFFERED=1`, `EXPOSE` only the real port, exec-form `CMD ["..."]` so signals reach the process (graceful shutdown). **[Enforced: hadolint DL3025]**
@@ -39,7 +38,7 @@ Run `hadolint` on every Dockerfile. Treat these as errors: DL3002 (last USER not
 
 ## Compose and local infra
 
-- `infra/docker/docker-compose.yml` is for local development only; credentials in it (`minioadmin`, `docqa/docqa`) are local-only defaults and must never be reused elsewhere.
+- `infra/docker/docker-compose.yml` is for local development only; credentials in it (`rustfsadmin`, `docqa/docqa`) are local-only defaults and must never be reused elsewhere.
 - Pin versions of postgres, redis, qdrant, temporal, otel-lgtm to the minor version used in CI/production so behaviour matches.
 - Validate in CI: `docker compose config -q`. **[Enforced: CI `docker` job]**
 - Volumes for stateful services; `down -v` wipes data (document it).

@@ -30,7 +30,7 @@ Browser
 Temporal -> ingestion-worker   validate -> extract -> chunk -> embed -> index
 ```
 
-Stores: Postgres (tenants, documents, ACLs, chunks, jobs, audit log, with RLS), Qdrant (vectors filtered by tenant and ACL), Redis (cache, rate limits), MinIO / S3 (raw uploads). Traces and metrics go to OpenTelemetry and Grafana; LLM traces go to Langfuse.
+Stores: Postgres (tenants, documents, ACLs, chunks, jobs, audit log, with RLS), Qdrant (vectors filtered by tenant and ACL), Redis (cache, rate limits), RustFS / S3 (raw uploads). Traces and metrics go to OpenTelemetry and Grafana; LLM traces go to Langfuse.
 
 Full design: `architecture/production-rag-plan-v1.md`. Decisions: `docs/adr/`. Milestone status: `docs/milestones/`. Engineering rules: `docs/engineering/`.
 
@@ -130,8 +130,8 @@ make help       # list every target
 | ai-api | http://localhost:8001 | Internal; OpenAPI docs at `/docs` (not reachable from browsers in production) |
 | Temporal UI | http://localhost:8080 | Workflow history |
 | Temporal gRPC | localhost:7233 | Used by the worker |
-| MinIO console | http://localhost:9001 | Login `minioadmin` / `minioadmin` (local only) |
-| MinIO API | http://localhost:9000 | S3-compatible endpoint |
+| RustFS console | http://localhost:9001/rustfs/console/ | Login `rustfsadmin` / `rustfsadmin` (local only) |
+| RustFS API | http://localhost:9000 | S3-compatible endpoint |
 | Qdrant | http://localhost:6333 | Dashboard at `/dashboard` |
 | Grafana | http://localhost:3002 | Traces, logs and metrics from `otel-lgtm`; moved from 3000 so it does not clash with the backend |
 | Langfuse | http://localhost:3001 | LLM traces (used from M1) |

@@ -28,7 +28,7 @@ Stack:
 - **Vector index:** Qdrant.
 - **Workflow orchestration:** Temporal for ingestion.
 - **Cache / rate limiting:** Redis.
-- **Object storage:** MinIO locally, S3-compatible elsewhere.
+- **Object storage:** RustFS (Apache-2.0, S3-compatible) locally, S3-compatible elsewhere. Replaced MinIO, which is no longer distributed as free open-source images.
 - **Observability:** OpenTelemetry, exported to Grafana LGTM (Tempo, Loki, Prometheus, Grafana). Structured JSON logs through structlog.
 - **LLM tracing and prompt analytics:** Langfuse.
 - **Build and packaging:** hatchling per package, uv for dependencies, Docker images per deployable service.

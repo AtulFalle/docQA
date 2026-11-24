@@ -1,6 +1,15 @@
 import { Controller, Get } from '@nestjs/common';
-import { HealthCheck, HealthCheckService, PrismaHealthIndicator } from '@nestjs/terminus';
-import { type LivenessResponse, type ReadinessResponse } from '@docqa/contracts';
+import {
+    HealthCheck,
+    HealthCheckService,
+    type HealthIndicatorResult,
+    PrismaHealthIndicator,
+} from '@nestjs/terminus';
+import {
+    type DependencyChecks,
+    type LivenessResponse,
+    type ReadinessResponse,
+} from '@docqa/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiServiceHealthIndicator } from './ai-service.health';
 
@@ -25,6 +34,18 @@ export class HealthController {
             () => this.prismaIndicator.pingCheck('database', this.prisma),
             () => this.aiService.isHealthy('aiService'),
         ]);
-        return { status: result.status, info: result.info ?? {}, error: result.error ?? {} };
+        return {
+            status: result.status,
+            info: toChecks(result.info),
+            error: toChecks(result.error),
+        };
     }
+}
+
+function toChecks(checks: Partial<HealthIndicatorResult> | undefined): DependencyChecks {
+    return Object.fromEntries(
+        Object.entries(checks ?? {}).filter(
+            (entry): entry is [string, DependencyChecks[string]] => entry[1] !== undefined,
+        ),
+    );
 }
