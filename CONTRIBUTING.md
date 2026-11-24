@@ -2,7 +2,8 @@
 
 ## Branching
 
-- `main` is always deployable. Direct pushes are not allowed; use a pull request.
+- Trunk-based: `main` is always deployable. Direct pushes are not allowed; use a pull request.
+- Every PR targets `main`. Don't open PRs into other feature branches (no stacked PRs).
 - Work on short-lived branches named by type and topic: `feat/ingest-ocr`, `fix/acl-cache`, `docs/m0-readme`.
 - Keep branches small. Rebase on `main` before review, and squash-merge when approved.
 

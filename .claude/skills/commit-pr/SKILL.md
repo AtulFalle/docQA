@@ -56,5 +56,6 @@ Format (the full guide is in `.gitmessage`; the `commit-msg` hook enforces it):
 - `git push -u origin <branch>`. The pre-push hook runs nx affected, mypy, import-linter and pytest.
 - PR title = the squash commit that lands on `main`, so it follows the same `type(scope): summary` rule (CI: `PR hygiene / Conventional Commit PR title`).
 - Body: copy `.github/pull_request_template.md` and fill in **every** section. Tick only the boxes that are true. Write "none" or "n/a" instead of deleting a required section; delete Screenshots only when there's no UI change.
-- `gh pr create --base main --title "<title>" --body-file <filled-template>`; add `--draft` if any gate is still red or work remains.
+- **Trunk-based: every PR targets `main`.** Never open a PR into another feature branch (no stacked PRs). If the work depends on an unmerged PR, ask the user whether to wait for it, add the work to that PR's branch, or rebase onto `main` after it merges.
+- `gh pr create --base main --title "<title>" --body-file <filled-template>`; add `--draft` if any gate is still red or work remains. PRs are squash-merged.
 - Share the PR URL with the user, with a short summary of the checks that ran and anything left open.
