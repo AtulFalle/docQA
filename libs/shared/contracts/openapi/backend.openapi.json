@@ -1,0 +1,155 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "operationId": "HealthController_liveness_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LivenessResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": ["health"]
+      }
+    },
+    "/api/v1/health/ready": {
+      "get": {
+        "operationId": "HealthController_readiness_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A dependency is down",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Readiness of the backend and its dependencies",
+        "tags": ["health"]
+      }
+    },
+    "/api/v1/info": {
+      "get": {
+        "operationId": "InfoController_info_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InfoResponse"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Build and runtime metadata",
+        "tags": ["info"]
+      }
+    }
+  },
+  "info": {
+    "title": "docQA API",
+    "description": "Public API of the docQA backend.",
+    "version": "1",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "DependencyChecks": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": ["up", "degraded", "down"]
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": ["status"],
+          "additionalProperties": false
+        },
+        "description": "Per-dependency readiness, e.g. { database: { status: 'up' }, aiService: { status: 'down' } }."
+      },
+      "HealthStatus": {
+        "type": "string",
+        "enum": ["ok", "error", "degraded", "shutting_down"],
+        "description": "Overall health of a service."
+      },
+      "InfoResponse": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          }
+        },
+        "required": ["service", "version", "environment"],
+        "additionalProperties": false,
+        "description": "GET /api/v1/info — build/runtime metadata."
+      },
+      "LivenessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          }
+        },
+        "required": ["status"],
+        "additionalProperties": false,
+        "description": "GET /api/v1/health — liveness."
+      },
+      "ReadinessResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/HealthStatus"
+          },
+          "info": {
+            "$ref": "#/components/schemas/DependencyChecks"
+          },
+          "error": {
+            "$ref": "#/components/schemas/DependencyChecks"
+          }
+        },
+        "required": ["status", "info", "error"],
+        "additionalProperties": false,
+        "description": "GET /api/v1/health/ready — readiness of the backend and its dependencies."
+      }
+    }
+  }
+}

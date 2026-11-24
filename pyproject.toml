@@ -23,6 +23,7 @@ dev = [
     "import-linter==2.1",
     "deptry==0.23.0",
     "pre-commit>=4.0",
+    "datamodel-code-generator==0.101.0",
 ]
 
 [tool.uv]

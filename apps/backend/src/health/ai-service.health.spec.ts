@@ -1,45 +1,43 @@
-import { type ConfigService } from '@nestjs/config';
 import { type HealthIndicatorService } from '@nestjs/terminus';
-import { type Env } from '../config/env';
+import createClient from 'openapi-fetch';
+import { type AiApi } from '@docqa/contracts';
 import { AiServiceHealthIndicator } from './ai-service.health';
 
 describe('AiServiceHealthIndicator', () => {
-    const originalFetch = global.fetch;
-    let fetchMock: jest.Mock;
+    let fetchMock: jest.Mock<Promise<Response>, [Request]>;
     let indicator: AiServiceHealthIndicator;
 
     beforeEach(() => {
-        fetchMock = jest.fn();
-        global.fetch = fetchMock as unknown as typeof fetch;
+        fetchMock = jest.fn<Promise<Response>, [Request]>();
         const service = {
             check: (key: string) => ({
                 up: () => ({ [key]: { status: 'up' } }),
                 down: (data?: Record<string, unknown>) => ({ [key]: { status: 'down', ...data } }),
             }),
         } as unknown as HealthIndicatorService;
-        const config = { get: () => 'http://ai:8001' } as unknown as ConfigService<Env, true>;
-        indicator = new AiServiceHealthIndicator(service, config);
+        // The real generated client, with fetch stubbed, so the test covers the contract too
+        const client = createClient<AiApi.paths>({ baseUrl: 'http://ai:8001', fetch: fetchMock });
+        indicator = new AiServiceHealthIndicator(service, client);
     });
 
-    afterEach(() => {
-        global.fetch = originalFetch;
-    });
-
-    it('is up on 2xx', async () => {
-        fetchMock.mockResolvedValue({ ok: true, status: 200 });
+    it('is up on 2xx and calls GET /healthz with a timeout', async () => {
+        fetchMock.mockResolvedValue(Response.json({ status: 'ok' }));
         await expect(indicator.isHealthy('aiService')).resolves.toEqual({
             aiService: { status: 'up' },
         });
-        expect(fetchMock).toHaveBeenCalledWith(
-            'http://ai:8001/healthz',
-            expect.objectContaining({ signal: expect.anything() }),
-        );
+        const request = fetchMock.mock.calls[0]?.[0];
+        expect(request?.method).toBe('GET');
+        expect(request?.url).toBe('http://ai:8001/healthz');
+        expect(request?.signal).toBeDefined();
     });
 
     it('is down on non-2xx', async () => {
-        fetchMock.mockResolvedValue({ ok: false, status: 503 });
+        fetchMock.mockResolvedValue(new Response(null, { status: 503 }));
         const res = await indicator.isHealthy('aiService');
-        expect(res['aiService']?.status).toBe('down');
+        expect(res['aiService']).toMatchObject({
+            status: 'down',
+            message: 'AI service responded with HTTP 503',
+        });
     });
 
     it('is down on timeout', async () => {

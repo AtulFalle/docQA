@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help dev backend db-migrate db-migrate-dev js-check e2e format check lint-imports deps-check audit setup up down logs ps up-app ai-api worker lint fmt typecheck test test-unit eval-validate docker-build clean
+.PHONY: help dev backend db-migrate db-migrate-dev js-check e2e format check lint-imports deps-check audit setup up down logs ps up-app ai-api worker lint fmt typecheck test test-unit eval-validate docker-build contracts contracts-check clean
 
 COMPOSE = docker compose -f infra/docker/docker-compose.yml
 
@@ -92,6 +92,15 @@ test-unit: ## Run unit tests only (no infra needed)
 
 eval-validate: ## Validate golden eval dataset against sample corpus
 	uv run docqa-eval validate eval/datasets/golden_v0.jsonl --corpus eval/corpus/sample
+
+contracts: ## Regenerate OpenAPI documents, ai-api client types and event models
+	bash tools/contracts/generate.sh
+
+CONTRACT_OUTPUTS = libs/shared/contracts/openapi libs/shared/contracts/src/generated libs/py-core/src/docqa_core/events
+
+contracts-check: contracts ## Fail if the committed contract artefacts are stale
+	@git diff --exit-code -- $(CONTRACT_OUTPUTS) || (echo 'Contracts are stale: run `make contracts` and commit the result.' && exit 1)
+	@test -z "$$(git status --porcelain --untracked-files=all -- $(CONTRACT_OUTPUTS))" || (git status --short -- $(CONTRACT_OUTPUTS) && echo 'Untracked generated files: run `make contracts` and commit them.' && exit 1)
 
 docker-build: ## Build all app images (web, backend, ai-api, worker)
 	$(COMPOSE) --profile app build backend-migrate backend web ai-api worker

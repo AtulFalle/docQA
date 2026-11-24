@@ -9,7 +9,10 @@ const CJS_EQUIVALENTS = {
     filename: '__filename',
 };
 const IMPORT_META = /\bimport\.meta\.(url|dirname|filename)\b/g;
-const shim = (source) => source.replace(IMPORT_META, (_, key) => CJS_EQUIVALENTS[key]);
+// ESM code that rebuilds `require` (e.g. @nestjs/swagger) clashes with CommonJS's own `require`.
+const CREATE_REQUIRE = /\bconst require = createRequire\(import\.meta\.url\);?/g;
+const shim = (source) =>
+    source.replace(CREATE_REQUIRE, '').replace(IMPORT_META, (_, key) => CJS_EQUIVALENTS[key]);
 
 class Transformer extends TsJestTransformer {
     process(source, path, options) {

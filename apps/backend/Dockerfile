@@ -23,7 +23,9 @@ WORKDIR /app
 RUN corepack enable
 COPY --from=build --chown=node:node /repo/dist/apps/backend/ ./
 # npm is unused at runtime and its bundled deps carry CVEs; drop it after the install.
-RUN pnpm install --prod --frozen-lockfile && chown -R node:node /app \
+# --ignore-scripts: the Prisma client is generated and bundled at build time, so no
+# install script (prisma, @prisma/engines, protobufjs, scarf) is needed here.
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts && chown -R node:node /app \
   && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 USER node
 EXPOSE 3000

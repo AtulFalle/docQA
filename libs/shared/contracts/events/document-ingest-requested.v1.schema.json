@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://docqa.local/events/document-ingest-requested.v1.schema.json",
+  "title": "DocumentIngestRequested",
+  "description": "Published by the backend when a document version is stored and ready to ingest. Version 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "occurredAt", "tenantId", "documentId", "documentVersionId"],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique per event; consumers use it to drop duplicates."
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event happened (ISO 8601, with offset)."
+    },
+    "tenantId": { "type": "string", "format": "uuid" },
+    "documentId": { "type": "string", "format": "uuid" },
+    "documentVersionId": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The version to ingest."
+    }
+  }
+}
