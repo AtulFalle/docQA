@@ -1,0 +1,23 @@
+{
+  "files.eol": "\n",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "editor.rulers": [100],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "[markdown]": {
+    "files.trimTrailingWhitespace": false
+  },
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["-m", "not integration"],
+  "mypy-type-checker.args": ["--config-file=pyproject.toml"],
+  "mypy-type-checker.importStrategy": "fromEnvironment"
+}

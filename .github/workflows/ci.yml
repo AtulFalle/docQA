@@ -1,0 +1,257 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      # No --locked: uv.lock is not committed yet.
+      - name: Sync workspace
+        run: uv sync --locked --all-packages --group dev
+
+      - name: Ruff lint
+        run: uv run ruff check .
+
+      - name: Ruff format check
+        run: uv run ruff format --check .
+
+      - name: Architecture boundaries (import-linter)
+        run: uv run lint-imports
+
+      - name: Dependency hygiene (deptry, per package)
+        run: |
+          for pkg in libs/py-core services/ai-api services/ingestion-worker eval; do
+            echo "::group::deptry $pkg"
+            (cd "$pkg" && uv run deptry src)
+            echo "::endgroup::"
+          done
+
+  lint-infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hadolint (every Dockerfile in the repo)
+        uses: hadolint/hadolint-action@54c9adbab1582c2ef04b2016b760714a4bfde3cf # v3.1.0
+        with:
+          dockerfile: Dockerfile
+          recursive: true
+
+      - name: Actionlint
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/5db9d9cde2f3deb5035dea3e45f0a9fff2f29448/scripts/download-actionlint.bash) 1.7.4
+          ./actionlint -color
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync workspace
+        run: uv sync --locked --all-packages --group dev
+
+      - name: Mypy
+        run: uv run mypy libs/py-core/src services/ai-api/src services/ingestion-worker/src eval/src
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: docqa
+          POSTGRES_PASSWORD: docqa
+          POSTGRES_DB: docqa
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U docqa -d docqa"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://docqa:docqa@localhost:5432/docqa
+      DOCQA_DATABASE_URL: postgresql+psycopg://docqa:docqa@localhost:5432/docqa
+      DOCQA_TEST_DATABASE_URL: postgresql+psycopg://docqa:docqa@localhost:5432/docqa
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync workspace
+        run: uv sync --locked --all-packages --group dev
+
+      # Prisma (apps/backend) owns the schema: apply migrations, then fail on schema drift.
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Prisma migrations
+        run: pnpm db:migrate
+
+      - name: Prisma schema drift check (schema.prisma vs migrated DB)
+        run: pnpm db:drift
+
+      # Coverage floor is [tool.coverage.report].fail_under in pyproject.toml (ratchet up only).
+      - name: Tests with coverage (includes integration tests)
+        run: uv run pytest --cov --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  js:
+    name: js (format, lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prettier
+        run: pnpm format:check
+
+      - name: Lint, typecheck, unit tests (all TS projects)
+        run: pnpm nx run-many -t lint typecheck test --outputStyle=static
+
+      - name: Production builds (Angular budgets enforced)
+        run: pnpm nx run-many -t build --outputStyle=static
+
+  e2e-web:
+    name: e2e-web (Playwright)
+    runs-on: ubuntu-latest
+    needs: [js]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Playwright e2e (API mocked)
+        run: pnpm nx e2e web-e2e --outputStyle=static
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: dist/.playwright
+          if-no-files-found: ignore
+
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
+        with:
+          enable-cache: true
+
+      - name: Install Python 3.12
+        run: uv python install 3.12
+
+      - name: Sync workspace
+        run: uv sync --locked --all-packages --group dev
+
+      - name: Validate golden dataset against sample corpus
+        run: uv run docqa-eval validate eval/datasets/golden_v0.jsonl --corpus eval/corpus/sample
+
+      - name: Golden dataset stats
+        run: uv run docqa-eval stats eval/datasets/golden_v0.jsonl
+
+  docker:
+    name: docker (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    needs: [lint, lint-infra, js]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            dockerfile: apps/web/Dockerfile
+          - name: backend
+            dockerfile: apps/backend/Dockerfile
+          - name: ai-api
+            dockerfile: services/ai-api/Dockerfile
+          - name: ingestion-worker
+            dockerfile: services/ingestion-worker/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+      - name: Validate compose file
+        if: matrix.name == 'web'
+        run: docker compose -f infra/docker/docker-compose.yml --profile app config -q

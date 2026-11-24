@@ -1,0 +1,78 @@
+# Local mirror of the fast CI gates. Install once: `uv run pre-commit install --install-hooks`
+# (installs pre-commit, commit-msg and pre-push hooks; see default_install_hook_types).
+# Versions are pinned to match the dev dependency group in pyproject.toml.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
+default_stages: [pre-commit]
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--allow-multiple-documents']
+      - id: check-toml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-case-conflict # Windows/macOS are case-insensitive
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: detect-private-key
+      - id: debug-statements
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+      - id: no-commit-to-branch
+        args: ['--branch', 'main']
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.9
+    hooks:
+      - id: ruff
+        args: ['--fix', '--exit-non-zero-on-fix']
+      - id: ruff-format
+
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, perf, refactor, test, docs, build, ci, chore, revert]
+
+  # Slower checks run against the project environments (uv / pnpm), on push rather than every commit.
+  - repo: local
+    hooks:
+      - id: prettier
+        name: prettier (TS/HTML/SCSS/JSON/YAML)
+        entry: pnpm exec prettier --write --ignore-unknown
+        language: system
+        types_or: [ts, javascript, html, scss, css, json, yaml]
+        exclude: ^(pnpm-lock\.yaml|.*/generated/.*)$
+      - id: nx-affected
+        name: nx affected (lint, typecheck, unit tests)
+        entry: pnpm nx affected -t lint typecheck test --base=origin/main
+        language: system
+        pass_filenames: false
+        types_or: [ts, javascript, html, scss, json]
+        stages: [pre-push]
+      - id: mypy
+        name: mypy (strict)
+        entry: uv run mypy libs/core/src api/src workers/src eval/src
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-push]
+      - id: import-linter
+        name: architecture boundaries (import-linter)
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-push]
+      - id: unit-tests
+        name: unit tests
+        entry: uv run pytest -m "not integration" -q
+        language: system
+        pass_filenames: false
+        types: [python]
+        stages: [pre-push]

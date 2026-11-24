@@ -1,0 +1,20 @@
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="header">
+    <a class="brand" routerLink="/">docQA</a>
+    <nav aria-label="Primary">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+            >Status</a
+        >
+        <a routerLink="/ask" routerLinkActive="active">Ask</a>
+    </nav>
+</header>
+<main id="main" class="main">
+    <router-outlet />
+</main>
+<footer class="footer">
+    @if (info(); as i) {
+        <span>{{ i.service }} v{{ i.version }} ({{ i.environment }})</span>
+    } @else {
+        <span>Backend version unavailable</span>
+    }
+</footer>

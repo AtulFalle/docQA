@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # Python (uv workspace, uv.lock)
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-dev-tools:
+        patterns: ["ruff", "mypy", "import-linter", "deptry", "pytest*"]
+
+  # TypeScript (pnpm workspace). Angular and Nx must move together via `nx migrate`, so ignore
+  # their major bumps here and upgrade them deliberately.
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      - dependency-name: "@angular/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@angular-devkit/*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "nx"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@nx/*"
+        update-types: ["version-update:semver-major"]
+    groups:
+      angular:
+        patterns: ["@angular/*", "@angular-devkit/*", "@schematics/angular", "angular-eslint"]
+      nx:
+        patterns: ["nx", "@nx/*"]
+      nestjs:
+        patterns: ["@nestjs/*"]
+      prisma:
+        patterns: ["prisma", "@prisma/*"]
+      opentelemetry:
+        patterns: ["@opentelemetry/*"]
+
+  - package-ecosystem: "docker"
+    directories:
+      - "/apps/web"
+      - "/apps/backend"
+      - "/services/ai-api"
+      - "/services/ingestion-worker"
+    schedule:
+      interval: "weekly"

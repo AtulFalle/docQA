@@ -1,0 +1,53 @@
+server_tokens off;
+gzip on;
+gzip_types text/plain text/css application/javascript application/json image/svg+xml;
+
+server {
+  listen 8080;
+  root /usr/share/nginx/html;
+  index index.html;
+
+  add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 'ok';
+  }
+
+  # Buffering off so SSE answer streaming reaches the browser immediately.
+  location /api/ {
+    proxy_pass ${BACKEND_URL};
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Request-ID $http_x_request_id;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
+    client_max_body_size 100m;
+  }
+
+  # Hashed build assets. add_header in a location drops inherited ones, so security headers are repeated.
+  location ~* \.(?:js|css|woff2?|svg|png|ico)$ {
+    add_header Cache-Control "public, max-age=31536000, immutable";
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    try_files $uri =404;
+  }
+
+  location / {
+    add_header Cache-Control "no-cache";
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    try_files $uri $uri/ /index.html;
+  }
+}
