@@ -1,0 +1,8 @@
+{
+  "resume_priya_sharma": {"tenant_id": "tenant_demo", "acl_groups": ["hr"], "title": "Resume: Priya Sharma"},
+  "resume_arjun_mehta": {"tenant_id": "tenant_demo", "acl_groups": ["hr"], "title": "Resume: Arjun Mehta"},
+  "resume_neha_kulkarni": {"tenant_id": "tenant_demo", "acl_groups": ["hr"], "title": "Resume: Neha Kulkarni"},
+  "contract_acme_msa": {"tenant_id": "tenant_demo", "acl_groups": ["legal"], "title": "Master Services Agreement (Acme)"},
+  "contract_globex_nda": {"tenant_id": "tenant_demo", "acl_groups": ["legal"], "title": "Mutual NDA (Globex)"},
+  "policy_leave": {"tenant_id": "tenant_demo", "acl_groups": ["all"], "title": "Leave Policy"}
+}

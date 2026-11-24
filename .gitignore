@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and local settings (keep the template)
+.env
+.env.*
+!.env.example
+
+# Test, coverage, type and lint caches
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE (keep shared VS Code settings)
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Local data
+data/
+**/data/
+
+# OS
+.DS_Store
+Thumbs.db
+requirements-audit.txt
+
+# --- Node / Nx ---
+node_modules/
+dist/
+tmp/
+out-tsc/
+.nx/cache
+.nx/workspace-data
+.angular/
+coverage/
+test-results/
+playwright-report/

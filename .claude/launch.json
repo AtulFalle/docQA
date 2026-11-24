@@ -1,0 +1,37 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ai-api",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": [
+        "run",
+        "uvicorn",
+        "docqa_ai_api.main:app",
+        "--reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8001"
+      ],
+      "port": 8001
+    },
+    {
+      "name": "backend",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["nx", "serve", "backend", "--tui=false"],
+      "env": {
+        "PORT": "3000",
+        "DATABASE_URL": "postgresql://docqa:docqa@localhost:5432/docqa",
+        "AI_SERVICE_URL": "http://localhost:8001"
+      },
+      "port": 3000
+    },
+    {
+      "name": "web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["nx", "serve", "web", "--excludeTaskDependencies", "--tui=false"],
+      "port": 4200
+    }
+  ]
+}

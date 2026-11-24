@@ -1,0 +1,210 @@
+[project]
+name = "docqa"
+version = "0.1.0"
+description = "Production RAG / QA over massive document volumes (monorepo root)"
+requires-python = ">=3.12"
+dependencies = [
+    "docqa-core",
+    "docqa-ai-api",
+    "docqa-workers",
+    "docqa-eval",
+]
+
+[dependency-groups]
+# Quality tools are pinned EXACTLY so rule sets never change under us; bump deliberately
+# (Dependabot opens PRs) and fix the fallout in the same PR.
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "httpx>=0.27",
+    "ruff==0.16.9",
+    "mypy==2.3.1",
+    "import-linter==2.1",
+    "deptry==0.23.0",
+    "pre-commit>=4.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["libs/py-core", "services/ai-api", "services/ingestion-worker", "eval"]
+
+[tool.uv.sources]
+docqa-core = { workspace = true }
+docqa-ai-api = { workspace = true }
+docqa-workers = { workspace = true }
+docqa-eval = { workspace = true }
+
+# =============================================================================
+# Code quality configuration. Rationale for every rule family lives in
+# docs/engineering/python.md. Changing a rule = PR with justification.
+# =============================================================================
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "F",     # pyflakes: real bugs
+    "E", "W",# pycodestyle
+    "I",     # isort
+    "N",     # pep8-naming
+    "D",     # pydocstyle (public API docs)
+    "UP",    # pyupgrade: modern syntax
+    "ASYNC", # blocking calls in async code
+    "S",     # bandit security
+    "BLE",   # no blind `except Exception` without re-raise/log
+    "FBT",   # boolean positional args
+    "B",     # bugbear
+    "A",     # shadowing builtins
+    "C4",    # comprehensions
+    "DTZ",   # naive datetimes
+    "T10",   # debugger left in
+    "T20",   # print statements
+    "ISC",   # implicit string concat
+    "ICN",   # import conventions
+    "LOG", "G", # logging misuse
+    "PIE",
+    "PT",    # pytest style
+    "Q",
+    "RSE", "RET", "SIM",
+    "SLF",   # private member access
+    "TID",   # banned APIs / relative imports
+    "ARG",   # unused arguments
+    "PTH",   # pathlib over os.path
+    "ERA",   # commented-out code
+    "PL",    # pylint (incl. complexity thresholds below)
+    "TRY",   # exception handling anti-patterns
+    "FLY", "PERF", "FURB",
+    "C90",   # mccabe complexity
+    "RUF",
+]
+ignore = [
+    "D100", "D104", "D105", "D107", # module/package/magic/__init__ docstrings: optional
+    "TRY003",                       # long messages in exceptions are fine
+    "ISC001",                       # conflicts with formatter
+    "PLC0415",                      # lazy imports allowed (optional deps); keep them rare
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["docqa_core", "docqa_ai_api", "docqa_workers", "docqa_eval"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-returns = 6
+max-statements = 50
+max-nested-blocks = 4
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"os.getenv".msg = "Read configuration through docqa_core.config.Settings."
+"os.environ".msg = "Read configuration through docqa_core.config.Settings."
+"logging.getLogger".msg = "Use docqa_core.logging.get_logger (structured, trace-correlated)."
+"requests".msg = "Use httpx (async-capable, timeouts by default)."
+"pickle".msg = "Unsafe deserialisation. Use JSON / pydantic."
+"sqlalchemy.orm.Session".msg = "Use AsyncSession from docqa_core.db."
+
+[tool.ruff.lint.flake8-pytest-style]
+fixture-parentheses = false
+mark-parentheses = false
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S", "D", "ARG", "FBT", "PLR2004", "SLF001", "TID251", "PLR0913"]
+"libs/py-core/src/docqa_core/logging.py" = ["A005", "TID251"]   # owns stdlib logging wiring
+"libs/py-core/src/docqa_core/config.py" = ["TID251"]            # the one place env is read
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+    "possibly-undefined",
+    "redundant-self",
+    "unused-awaitable",
+]
+plugins = ["pydantic.mypy"]
+mypy_path = ["libs/py-core/src", "services/ai-api/src", "services/ingestion-worker/src", "eval/src"]
+explicit_package_bases = true
+exclude = ["tests/"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[[tool.mypy.overrides]]
+module = ["temporalio.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["libs/py-core/tests", "services/ai-api/tests", "services/ingestion-worker/tests", "eval/tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "integration: needs running infrastructure (Postgres, Temporal test server, ...)",
+]
+addopts = "-ra --strict-markers --strict-config"
+xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+source_pkgs = ["docqa_core", "docqa_ai_api", "docqa_workers", "docqa_eval"]
+omit = ["*/__main__.py"]
+
+[tool.coverage.report]
+# Ratchet: raise this whenever coverage goes up; never lower it without an ADR.
+fail_under = 83
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Architectural boundaries (enforced by `lint-imports` in CI).
+[tool.importlinter]
+root_packages = ["docqa_core", "docqa_ai_api", "docqa_workers", "docqa_eval"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Core is a leaf library: it never imports services or eval"
+type = "forbidden"
+source_modules = ["docqa_core"]
+forbidden_modules = ["docqa_ai_api", "docqa_workers", "docqa_eval"]
+
+[[tool.importlinter.contracts]]
+name = "Core stays framework-agnostic (no web or workflow frameworks)"
+type = "forbidden"
+source_modules = ["docqa_core"]
+forbidden_modules = ["fastapi", "starlette", "uvicorn", "temporalio"]
+
+[[tool.importlinter.contracts]]
+name = "Services and eval are independent of each other"
+type = "independence"
+modules = ["docqa_ai_api", "docqa_workers", "docqa_eval"]
+
+[[tool.importlinter.contracts]]
+name = "Eval harness is standalone (talks to the system via public APIs only)"
+type = "forbidden"
+source_modules = ["docqa_eval"]
+forbidden_modules = ["docqa_core", "sqlalchemy", "fastapi", "temporalio"]

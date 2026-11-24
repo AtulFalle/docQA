@@ -1,0 +1,10 @@
+# Code owners: reviews are requested automatically and, with branch protection
+# "Require review from Code Owners", required. Later matching lines win.
+# Add team handles (e.g. @org/platform) here as the team grows.
+* @AtulFalle
+
+# Sensitive areas: stricter review once more owners exist.
+/apps/backend/prisma/ @AtulFalle
+/libs/py-core/src/docqa_core/db/ @AtulFalle
+/.github/ @AtulFalle
+/eval/datasets/ @AtulFalle

@@ -1,0 +1,28 @@
+.banner {
+    background: var(--color-info-bg);
+    color: var(--color-info-text);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius);
+}
+form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    align-items: flex-start;
+}
+label {
+    font-weight: 600;
+}
+textarea {
+    width: 100%;
+    resize: vertical;
+}
+.meta {
+    display: flex;
+    gap: var(--space-4);
+    color: var(--color-muted);
+    font-size: 0.875rem;
+}
+.err {
+    color: var(--color-down-text);
+}

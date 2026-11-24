@@ -1,0 +1,20 @@
+<h1>Ask</h1>
+<p class="banner" role="status">Answering is coming in M1 (query API)</p>
+<form [formGroup]="form">
+    <label for="question">Your question</label>
+    <textarea
+        id="question"
+        rows="6"
+        formControlName="question"
+        [attr.maxlength]="max"
+        aria-describedby="counter"
+        [attr.aria-invalid]="form.controls.question.invalid && form.controls.question.touched"
+    ></textarea>
+    <div class="meta">
+        <span id="counter">{{ length() }} / {{ max }}</span>
+        @if (form.controls.question.touched && form.controls.question.hasError('required')) {
+            <span class="err" role="alert">Please enter a question.</span>
+        }
+    </div>
+    <button type="submit" disabled>Ask</button>
+</form>

@@ -1,0 +1,15 @@
+dist
+coverage
+node_modules
+pnpm-lock.yaml
+uv.lock
+.nx
+.angular
+.import_linter_cache
+apps/backend/src/generated
+**/*.md
+**/*.py
+**/*.toml
+**/*.jsonl
+eval/corpus
+.github
