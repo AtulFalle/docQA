@@ -8,6 +8,11 @@ COPY . .
 RUN pnpm nx build web --configuration=production
 
 FROM nginxinc/nginx-unprivileged:1.29-alpine
+# Pull in Alpine security fixes newer than the base image.
+USER root
+# hadolint ignore=DL3017
+RUN apk upgrade --no-cache
+USER 101
 COPY --from=build /app/dist/apps/web/browser /usr/share/nginx/html
 COPY apps/web/nginx/default.conf.template /etc/nginx/templates/default.conf.template
 ENV BACKEND_URL=http://backend:3000

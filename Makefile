@@ -13,7 +13,7 @@ setup: ## Install workspace deps and git hooks
 	uv run pre-commit install --install-hooks
 	git config commit.template .gitmessage
 
-up: ## Start core infra (Postgres, Redis, MinIO, Qdrant, Temporal, Langfuse, LGTM)
+up: ## Start core infra (Postgres, Redis, RustFS, Qdrant, Temporal, Langfuse, LGTM)
 	$(COMPOSE) up -d
 
 down: ## Stop infra containers (keeps volumes)

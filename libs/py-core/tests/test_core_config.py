@@ -17,8 +17,8 @@ def test_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert s.log_json is True
     assert s.otel_enabled is False
     assert s.database_url.startswith("postgresql+psycopg://")
-    assert s.s3_secret_key.get_secret_value() == "minioadmin"
-    assert "minioadmin" not in repr(s.s3_secret_key)
+    assert s.s3_secret_key.get_secret_value() == "rustfsadmin"
+    assert "rustfsadmin" not in repr(s.s3_secret_key)
 
 
 def test_env_override(monkeypatch: pytest.MonkeyPatch) -> None:

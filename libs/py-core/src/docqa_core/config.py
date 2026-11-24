@@ -20,8 +20,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     qdrant_url: str = "http://localhost:6333"
     s3_endpoint_url: str = "http://localhost:9000"
-    s3_access_key: str = "minioadmin"
-    s3_secret_key: SecretStr = SecretStr("minioadmin")
+    s3_access_key: str = "rustfsadmin"
+    s3_secret_key: SecretStr = SecretStr("rustfsadmin")
     s3_bucket_raw: str = "docqa-raw"
     temporal_address: str = "localhost:7233"
     temporal_namespace: str = "default"

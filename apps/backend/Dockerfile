@@ -22,7 +22,9 @@ ENV NODE_ENV=production
 WORKDIR /app
 RUN corepack enable
 COPY --from=build --chown=node:node /repo/dist/apps/backend/ ./
-RUN pnpm install --prod --frozen-lockfile && chown -R node:node /app
+# npm is unused at runtime and its bundled deps carry CVEs; drop it after the install.
+RUN pnpm install --prod --frozen-lockfile && chown -R node:node /app \
+  && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
