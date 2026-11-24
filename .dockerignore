@@ -27,5 +27,7 @@ dist
 .angular
 coverage
 **/src/generated
+# Committed output of `make contracts` (not build output like the Prisma client): keep it
+!libs/shared/contracts/src/generated
 test-results
 playwright-report
