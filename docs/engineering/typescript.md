@@ -146,6 +146,15 @@ const res = await fetch(url, {
 
 ## Complexity and size
 
+| Limit | Value | Enforced by |
+| --- | --- | --- |
+| File length (`.ts`, `.html`) | 400 lines, excluding blanks and comments | `max-lines` |
+| Function length | 50 lines, excluding blanks and comments (specs exempt) | `max-lines-per-function` |
+| Cyclomatic complexity | 10 | `complexity` |
+| Nesting depth / params | 4 / 6 | `max-depth` / `max-params` |
+| Return types | Every function declares one (typed callbacks/arrow consts exempt) | `explicit-function-return-type`, `explicit-module-boundary-types` |
+| `any` | Never: use `unknown` + narrowing, or a contract type | `no-explicit-any` (TS), `template/no-any` (HTML) |
+
 - A function with several responsibilities gets split. Complexity over 10 fails lint, so split first and do not add a disable comment. **[Enforced: complexity]** **[Review: size]**
 - Suppressing a lint rule needs a reason on the same line: `// eslint-disable-next-line rule-name -- reason`. Bare disables are rejected in review. **[Review]**
 

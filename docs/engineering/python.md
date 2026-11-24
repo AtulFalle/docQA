@@ -38,6 +38,7 @@ Numbers mirror `[tool.ruff.lint]`: **[Enforced: ruff C901, PLR]**
 | Returns | 6 |
 | Statements | 50 |
 | Nested blocks | 4 |
+| Module length | 400 non-blank lines **[Enforced: `tools/check_file_length.py`, pre-commit + CI]** |
 
 Hitting a limit means split the function, not raise the limit. Guard clauses beat nesting.
 
