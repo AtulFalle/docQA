@@ -45,7 +45,7 @@ db-migrate-dev: ## Create a new Prisma migration from schema changes
 
 js-check: ## TS gates: prettier, lint, typecheck, unit tests, builds
 	pnpm format:check
-	pnpm nx run-many -t lint typecheck test
+	pnpm nx run-many -t lint lint-styles typecheck test
 	pnpm nx run-many -t build
 
 e2e: ## Playwright e2e for the web app
@@ -60,6 +60,7 @@ worker: ## Run the Temporal ingestion worker locally
 lint: ## Ruff lint and format check
 	uv run ruff check .
 	uv run ruff format --check .
+	uv run python tools/check_file_length.py
 
 fmt: ## Auto-fix lint and format
 	uv run ruff check --fix .

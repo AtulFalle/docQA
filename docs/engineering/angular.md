@@ -7,10 +7,12 @@ Every rule is tagged:
 - **[Enforced: tool/rule]** a tool fails the build, the commit or CI.
 - **[Review]** no tool catches it; reviewers check it.
 
-> Enforced in `apps/web/eslint.config.mjs`: `prefer-on-push-component-change-detection`, `prefer-standalone`, `template/prefer-control-flow` and the angular-eslint template accessibility rule set. Everything else marked **[Review]** is checked by reviewers.
+> Enforced in `apps/web/eslint.config.mjs`: OnPush, standalone, signal APIs (`prefer-signals`, `prefer-signal-model`, `prefer-inject`), built-in control flow, self-closing tags, `NgOptimizedImage`, no `$any` in templates, file and function size, and the angular-eslint template accessibility rules. SCSS/BEM is enforced by `stylelint.config.mjs` (`web:lint-styles`). Everything else marked **[Review]** is checked by reviewers.
 
 ## Components
 
+- Keep files small: 400 lines max per `.ts`/`.html` file and 50 lines per function. A component that grows past that gets split into child components or moves its logic into a service or pure functions. **[Enforced: `max-lines`, `max-lines-per-function`]**
+- Modern APIs only: `input()`, `output()`, `model()`, `viewChild()` and `inject()`, instead of `@Input`/`@Output`/`@ViewChild` and constructor injection. **[Enforced: `prefer-signals`, `prefer-signal-model`, `prefer-inject`]**
 - Standalone components only. Do not add NgModules. **[Enforced: @angular-eslint/prefer-standalone]**
 - `changeDetection: ChangeDetectionStrategy.OnPush` on every component. **[Enforced: @angular-eslint/prefer-on-push-component-change-detection]**
 - The app is zoneless. Do not add `zone.js`, and do not rely on zone-triggered change detection: changes reach the view through signals and explicit markers. **[Review]**
@@ -55,7 +57,7 @@ export class DocumentListComponent {
 
 ## Templates and control flow
 
-- Use the built-in control flow (`@if`, `@for` with `track`, `@switch`, `@defer`). `*ngIf`, `*ngFor` and `ngSwitch` are not used in new code. **[Review until enabled; migrate with `ng generate @angular/core:control-flow`]**
+- Use the built-in control flow (`@if`, `@for` with `track`, `@switch`, `@defer`). `*ngIf`, `*ngFor` and `ngSwitch` are not used in new code. **[Enforced: `template/prefer-control-flow`]**
 - `@for` always has a `track` expression with a stable id. **[Review]**
 - No function calls with side effects in templates. No `innerHTML` binding (see Security). **[Review]**
 
@@ -126,6 +128,29 @@ Target: WCAG 2.2 AA for every page.
 - Focus is visible: do not remove `:focus-visible` outlines without a replacement. **[Review]**
 - Async status (loading, saved, error, "N results") is announced with `aria-live="polite"` (errors with `role="alert"` when urgent). **[Review]**
 - Colour contrast of at least 4.5:1 for text. Colour is never the only signal. **[Review]**
+
+## Styling (SCSS and BEM)
+
+- Class names follow BEM: `block`, `block__element`, `block--modifier`, `block__element--modifier`, each part kebab-case. One block per component, named after it (`status-page` → `.status`). **[Enforced: stylelint `selector-class-pattern`]**
+- State is a modifier class, not a bare second class: `status__badge--down`, never `.badge.down`. Bind it with `[class.status__badge--down]="isDown()"`. **[Review]**
+- Write elements and modifiers with `&__` / `&--` inside the block. Don't style tags or IDs: no `nav a`, `form`, `#main`. **[Enforced: `selector-no-qualifying-type`, `selector-max-id`, `selector-max-compound-selectors: 3`, `max-nesting-depth: 3`]**
+- No `!important`; the one exception is the global reduced-motion override. **[Enforced: `declaration-no-important`]**
+- Use design tokens (`var(--space-3)`, `var(--color-…)`) from `styles.scss`; no raw colours or spacing in components. **[Review]**
+- Run `pnpm nx run web:lint-styles` (pre-commit runs stylelint with `--fix`).
+
+```scss
+// bad
+.badge.down { … }
+nav a.active { … }
+
+// good
+.status {
+    &__badge {
+        …
+        &--down { … }
+    }
+}
+```
 
 ## Performance budgets
 

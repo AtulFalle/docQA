@@ -1,17 +1,21 @@
-<a class="skip-link" href="#main">Skip to content</a>
-<header class="header">
-    <a class="brand" routerLink="/">docQA</a>
-    <nav aria-label="Primary">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+<a class="app__skip-link" href="#main">Skip to content</a>
+<header class="app__header">
+    <a class="app__brand" routerLink="/">docQA</a>
+    <nav class="app__nav" aria-label="Primary">
+        <a
+            class="app__nav-link"
+            routerLink="/"
+            routerLinkActive="app__nav-link--active"
+            [routerLinkActiveOptions]="{ exact: true }"
             >Status</a
         >
-        <a routerLink="/ask" routerLinkActive="active">Ask</a>
+        <a class="app__nav-link" routerLink="/ask" routerLinkActive="app__nav-link--active">Ask</a>
     </nav>
 </header>
-<main id="main" class="main">
+<main id="main" class="app__main">
     <router-outlet />
 </main>
-<footer class="footer">
+<footer class="app__footer">
     @if (info(); as i) {
         <span>{{ i.service }} v{{ i.version }} ({{ i.environment }})</span>
     } @else {

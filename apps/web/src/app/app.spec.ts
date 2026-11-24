@@ -21,8 +21,10 @@ describe('App', () => {
         });
         await fixture.whenStable();
         const el = fixture.nativeElement as HTMLElement;
-        expect(el.querySelector('.brand')?.textContent).toContain('docQA');
-        const links = Array.from(el.querySelectorAll('nav a')).map((a) => a.textContent?.trim());
+        expect(el.querySelector('.app__brand')?.textContent).toContain('docQA');
+        const links = Array.from(el.querySelectorAll('.app__nav-link')).map((a) =>
+            a.textContent?.trim(),
+        );
         expect(links).toEqual(['Status', 'Ask']);
         expect(el.querySelector('footer')?.textContent).toContain('v1.2.3');
     });
