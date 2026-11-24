@@ -15,6 +15,7 @@ interface Row {
 const OVERALL: Record<HealthStatus, string> = {
     ok: 'All systems operational',
     error: 'Degraded: a dependency is down',
+    degraded: 'Degraded: a dependency is impaired',
     shutting_down: 'Shutting down',
 };
 

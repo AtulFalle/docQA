@@ -76,7 +76,8 @@
       "outputs": ["{projectRoot}/src/generated"],
       "options": {
         "cwd": "{workspaceRoot}",
-        "command": "DATABASE_URL=${DATABASE_URL:-postgresql://generate:unused@localhost:5432/unused} prisma generate --config apps/backend/prisma.config.ts"
+        "command": "prisma generate --config apps/backend/prisma.config.ts",
+        "env": { "DATABASE_URL": "postgresql://generate:unused@localhost:5432/unused" }
       }
     },
     "typecheck": {
