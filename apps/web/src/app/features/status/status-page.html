@@ -1,42 +1,57 @@
-<h1>System status</h1>
-<div class="toolbar">
-    <div class="overall" aria-live="polite">
-        @switch (state().kind) {
-            @case ('loading') {
-                <span class="badge">Checking…</span>
-            }
-            @case ('error') {
-                <span class="badge down">Unable to reach the backend</span>
-            }
-            @default {
-                @if (overall(); as o) {
-                    <span class="badge" [class.ok]="o.ok" [class.down]="!o.ok">{{ o.label }}</span>
+<section class="status">
+    <h1 class="status__title">System status</h1>
+    <div class="status__toolbar">
+        <div class="status__overall" aria-live="polite">
+            @switch (state().kind) {
+                @case ('loading') {
+                    <span class="status__badge">Checking…</span>
+                }
+                @case ('error') {
+                    <span class="status__badge status__badge--down"
+                        >Unable to reach the backend</span
+                    >
+                }
+                @default {
+                    @if (overall(); as o) {
+                        <span
+                            class="status__badge"
+                            [class.status__badge--ok]="o.ok"
+                            [class.status__badge--down]="!o.ok"
+                            >{{ o.label }}</span
+                        >
+                    }
                 }
             }
-        }
+        </div>
+        <button type="button" (click)="refresh()" [disabled]="state().kind === 'loading'">
+            Refresh
+        </button>
     </div>
-    <button type="button" (click)="refresh()" [disabled]="state().kind === 'loading'">
-        Refresh
-    </button>
-</div>
 
-@if (state().kind === 'loaded') {
-    <ul class="rows" aria-label="Dependencies">
-        @for (row of rows(); track row.name) {
-            <li class="row">
-                <span class="name">{{ row.name }}</span>
-                <span class="badge" aria-live="polite" [class.ok]="row.up" [class.down]="!row.up">{{
-                    row.up ? 'Up' : 'Down'
-                }}</span>
-                @if (row.message) {
-                    <span class="msg">{{ row.message }}</span>
-                }
-            </li>
-        } @empty {
-            <li class="row">No dependencies reported.</li>
-        }
-    </ul>
-}
-@if (state().kind === 'error') {
-    <p role="alert" class="error">The status check failed. Check your connection and try again.</p>
-}
+    @if (state().kind === 'loaded') {
+        <ul class="status__list" aria-label="Dependencies">
+            @for (row of rows(); track row.name) {
+                <li class="status__row">
+                    <span class="status__name">{{ row.name }}</span>
+                    <span
+                        class="status__badge"
+                        aria-live="polite"
+                        [class.status__badge--ok]="row.up"
+                        [class.status__badge--down]="!row.up"
+                        >{{ row.up ? 'Up' : 'Down' }}</span
+                    >
+                    @if (row.message) {
+                        <span class="status__message">{{ row.message }}</span>
+                    }
+                </li>
+            } @empty {
+                <li class="status__row">No dependencies reported.</li>
+            }
+        </ul>
+    }
+    @if (state().kind === 'error') {
+        <p role="alert" class="status__error">
+            The status check failed. Check your connection and try again.
+        </p>
+    }
+</section>

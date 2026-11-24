@@ -32,8 +32,8 @@ describe('StatusPage', () => {
         });
         await fixture.whenStable();
         expect(el.textContent).toContain('All systems operational');
-        expect(el.querySelectorAll('.row').length).toBe(2);
-        expect(el.querySelectorAll('.badge.ok').length).toBe(3);
+        expect(el.querySelectorAll('.status__row').length).toBe(2);
+        expect(el.querySelectorAll('.status__badge--ok').length).toBe(3);
     });
 
     it('renders the degraded state', async () => {
@@ -50,7 +50,7 @@ describe('StatusPage', () => {
         expect(el.textContent).toContain('Degraded');
         expect(el.textContent).toContain('aiService');
         expect(el.textContent).toContain('timeout');
-        expect(el.querySelectorAll('.row .badge.down').length).toBe(1);
+        expect(el.querySelectorAll('.status__row .status__badge--down').length).toBe(1);
     });
 
     it('renders the error state and can refresh', async () => {
