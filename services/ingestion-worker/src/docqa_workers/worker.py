@@ -1,6 +1,7 @@
 """Temporal worker entrypoint."""
 
 import asyncio
+import contextlib
 
 from temporalio.client import Client, Interceptor
 from temporalio.worker import Worker
@@ -49,8 +50,8 @@ def main() -> None:
         environment=settings.env,
     )
     try:
-        asyncio.run(run_worker(settings))
-    except KeyboardInterrupt:
-        pass
+        # Ctrl+C is the normal way to stop the worker locally; exit cleanly, no traceback.
+        with contextlib.suppress(KeyboardInterrupt):
+            asyncio.run(run_worker(settings))
     finally:
         shutdown_telemetry()
