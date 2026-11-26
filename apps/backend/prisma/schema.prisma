@@ -1,6 +1,12 @@
-// Source of truth for the Postgres schema. The Python mirror in
-// libs/py-core/src/docqa_core/db/models.py must be updated in the same PR.
-// Enum-like columns are plain VarChar(32) (no native Postgres enums).
+// Source of truth for the Postgres schema (ADR 0005). The design is ADR 0006.
+// The Python mirror in libs/py-core/src/docqa_core/db/models/ must be updated in the same PR.
+//
+// Conventions (ADR 0006, section 2):
+// - ids are UUIDv7 from the SQL function uuidv7(); tenant tables carry UNIQUE(tenant_id, id)
+//   and every FK between tenant tables is composite: (tenant_id, x_id) -> (tenant_id, id).
+// - Status columns are VarChar(32) with a CHECK constraint (raw SQL in the migration).
+// - Objects Prisma cannot express live as raw SQL in the migration: CHECK constraints,
+//   partial unique indexes, partitioning, RLS, functions, triggers, roles and grants.
 
 generator client {
   provider     = "prisma-client"
@@ -12,207 +18,613 @@ datasource db {
   provider = "postgresql"
 }
 
-model Tenant {
-  id        String   @id(map: "pk_tenants") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug      String   @unique(map: "uq_tenants_slug") @db.VarChar(100)
-  name      String   @db.VarChar(255)
-  status    String   @default("active") @db.VarChar(32)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+// ---------------------------------------------------------------------------
+// Platform (global, no RLS)
+// ---------------------------------------------------------------------------
 
-  users            User[]
-  groups           Group[]
-  groupMemberships GroupMembership[]
-  documents        Document[]
-  documentAcls     DocumentAcl[]
-  documentVersions DocumentVersion[]
-  chunks           Chunk[]
-  jobs             Job[]
-  auditLogs        AuditLog[]
+model Tenant {
+  id                String    @id(map: "pk_tenants") @default(dbgenerated("uuidv7()")) @db.Uuid
+  slug              String    @unique(map: "uq_tenants_slug") @db.VarChar(100)
+  name              String    @db.VarChar(255)
+  status            String    @default("active") @db.VarChar(32)
+  idpOrganizationId String?   @unique(map: "uq_tenants_idp_organization_id") @map("idp_organization_id") @db.VarChar(255)
+  legalHoldAt       DateTime? @map("legal_hold_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  settings               TenantSettings?
+  users                  User[]
+  groups                 Group[]
+  groupMemberships       GroupMembership[]
+  documents              Document[]
+  documentVersions       DocumentVersion[]
+  documentAcls           DocumentAcl[]
+  uploadSessions         UploadSession[]
+  chunks                 Chunk[]
+  documentVersionIndexes DocumentVersionIndex[]
+  jobs                   Job[]
+  conversations          Conversation[]
+  queries                Query[]
+  answers                Answer[]
+  citations              Citation[]
+  feedback               Feedback[]
+  usageDaily             UsageDaily[]
 
   @@map("tenants")
 }
 
+/// Per-tenant overrides. Every setting is nullable: null means the deployment default.
+model TenantSettings {
+  tenantId                     String   @id(map: "pk_tenant_settings") @map("tenant_id") @db.Uuid
+  deletedDocumentRetentionDays Int?     @map("deleted_document_retention_days")
+  queryRetentionDays           Int?     @map("query_retention_days")
+  maxFileBytes                 BigInt?  @map("max_file_bytes")
+  maxPagesPerDocument          Int?     @map("max_pages_per_document")
+  maxOcrPagesPerDocument       Int?     @map("max_ocr_pages_per_document")
+  maxChunksPerVersion          Int?     @map("max_chunks_per_version")
+  maxStorageBytes              BigInt?  @map("max_storage_bytes")
+  maxDocuments                 Int?     @map("max_documents")
+  maxConcurrentUploadsPerUser  Int?     @map("max_concurrent_uploads_per_user")
+  maxConcurrentUploads         Int?     @map("max_concurrent_uploads")
+  maxRunningJobs               Int?     @map("max_running_jobs")
+  maxQueuedJobs                Int?     @map("max_queued_jobs")
+  maxQueriesPerMinutePerUser   Int?     @map("max_queries_per_minute_per_user")
+  maxQueriesPerMinute          Int?     @map("max_queries_per_minute")
+  monthlyBudgetMicros          BigInt?  @map("monthly_budget_micros")
+  /// Narrows the deployment's allowed MIME types. Empty means no narrowing.
+  allowedMimeTypes             String[] @default([]) @map("allowed_mime_types") @db.VarChar(255)
+  createdAt                    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_tenant_settings_tenant_id_tenants")
+
+  @@map("tenant_settings")
+}
+
+/// One embedding model plus one Qdrant collection. At most one row is 'active'.
+model SearchIndex {
+  id                String    @id(map: "pk_search_indexes") @default(dbgenerated("uuidv7()")) @db.Uuid
+  name              String    @unique(map: "uq_search_indexes_name") @db.VarChar(100)
+  embeddingProvider String    @map("embedding_provider") @db.VarChar(100)
+  embeddingModel    String    @map("embedding_model") @db.VarChar(255)
+  modelVersion      String?   @map("model_version") @db.VarChar(100)
+  dimension         Int
+  distance          String    @default("cosine") @db.VarChar(32)
+  qdrantCollection  String    @unique(map: "uq_search_indexes_qdrant_collection") @map("qdrant_collection") @db.VarChar(255)
+  chunkerVersion    String    @map("chunker_version") @db.VarChar(50)
+  status            String    @default("building") @db.VarChar(32)
+  activatedAt       DateTime? @map("activated_at") @db.Timestamptz(6)
+  retiredAt         DateTime? @map("retired_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  documentVersionIndexes DocumentVersionIndex[]
+
+  @@map("search_indexes")
+}
+
+model ModelPrice {
+  id                  String   @id(map: "pk_model_prices") @default(dbgenerated("uuidv7()")) @db.Uuid
+  provider            String   @db.VarChar(100)
+  model               String   @db.VarChar(255)
+  kind                String   @db.VarChar(32)
+  inputMicrosPerMtok  BigInt?  @map("input_micros_per_mtok")
+  outputMicrosPerMtok BigInt?  @map("output_micros_per_mtok")
+  unitMicros          BigInt?  @map("unit_micros")
+  currency            String   @default("USD") @db.Char(3)
+  effectiveFrom       DateTime @map("effective_from") @db.Timestamptz(6)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([provider, model, kind, effectiveFrom], map: "uq_model_prices_provider_model_kind_effective_from")
+  @@map("model_prices")
+}
+
+// ---------------------------------------------------------------------------
+// Identity and access (RLS)
+// ---------------------------------------------------------------------------
+
 model User {
-  id              String   @id(map: "pk_users") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId        String   @map("tenant_id") @db.Uuid
-  externalSubject String   @map("external_subject") @db.VarChar(255)
-  email           String   @db.VarChar(320)
-  displayName     String?  @map("display_name") @db.VarChar(255)
-  isActive        Boolean  @default(true) @map("is_active")
-  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              String    @id(map: "pk_users") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId        String    @map("tenant_id") @db.Uuid
+  idpIssuer       String    @map("idp_issuer") @db.VarChar(255)
+  externalSubject String    @map("external_subject") @db.VarChar(255)
+  /// Cleared on erasure.
+  email           String?   @db.VarChar(320)
+  /// Cleared on erasure.
+  displayName     String?   @map("display_name") @db.VarChar(255)
+  role            String    @default("member") @db.VarChar(32)
+  lastLoginAt     DateTime? @map("last_login_at") @db.Timestamptz(6)
+  deactivatedAt   DateTime? @map("deactivated_at") @db.Timestamptz(6)
+  erasedAt        DateTime? @map("erased_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_users_tenant_id_tenants")
   groupMemberships GroupMembership[]
-  createdDocuments Document[]
+  aclGrants        DocumentAcl[]     @relation("AclUser")
+  aclGrantsGiven   DocumentAcl[]     @relation("AclGrantedBy")
+  documentsCreated Document[]        @relation("DocumentCreatedBy")
+  documentsDeleted Document[]        @relation("DocumentDeletedBy")
+  versionsCreated  DocumentVersion[] @relation("VersionCreatedBy")
+  versionsDeleted  DocumentVersion[] @relation("VersionDeletedBy")
+  uploadSessions   UploadSession[]
+  jobsCreated      Job[]
+  conversations    Conversation[]
+  queries          Query[]
+  feedback         Feedback[]
 
-  @@unique([tenantId, externalSubject], map: "uq_users_tenant_id")
-  @@index([tenantId], map: "ix_users_tenant_id")
+  @@unique([tenantId, id], map: "uq_users_tenant_id_id")
+  @@unique([tenantId, idpIssuer, externalSubject], map: "uq_users_tenant_id_idp_issuer_external_subject")
+  @@index([tenantId, email], map: "ix_users_tenant_id_email")
   @@map("users")
 }
 
 model Group {
-  id         String   @id(map: "pk_groups") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id         String   @id(map: "pk_groups") @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId   String   @map("tenant_id") @db.Uuid
   name       String   @db.VarChar(255)
+  source     String   @default("local") @db.VarChar(32)
   externalId String?  @map("external_id") @db.VarChar(255)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_groups_tenant_id_tenants")
   memberships GroupMembership[]
+  aclGrants   DocumentAcl[]
 
-  @@unique([tenantId, name], map: "uq_groups_tenant_id")
-  @@index([tenantId], map: "ix_groups_tenant_id")
+  @@unique([tenantId, id], map: "uq_groups_tenant_id_id")
+  @@unique([tenantId, name], map: "uq_groups_tenant_id_name")
+  @@unique([tenantId, externalId], map: "uq_groups_tenant_id_external_id")
   @@map("groups")
 }
 
 model GroupMembership {
+  tenantId  String   @map("tenant_id") @db.Uuid
   groupId   String   @map("group_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
-  tenantId  String   @map("tenant_id") @db.Uuid
+  source    String   @default("local") @db.VarChar(32)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  group  Group  @relation(fields: [groupId], references: [id], onDelete: Cascade, map: "fk_group_memberships_group_id_groups")
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "fk_group_memberships_user_id_users")
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_group_memberships_tenant_id_tenants")
+  group  Group  @relation(fields: [tenantId, groupId], references: [tenantId, id], onDelete: Cascade, map: "fk_group_memberships_group_id_groups")
+  user   User   @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade, map: "fk_group_memberships_user_id_users")
 
-  @@id([groupId, userId], map: "pk_group_memberships")
+  @@id([tenantId, groupId, userId], map: "pk_group_memberships")
+  @@index([tenantId, userId], map: "ix_group_memberships_tenant_id_user_id")
   @@map("group_memberships")
 }
 
-model Document {
-  id               String    @id(map: "pk_documents") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId         String    @map("tenant_id") @db.Uuid
-  title            String    @db.VarChar(512)
-  sourceUri        String?   @map("source_uri")
-  mimeType         String?   @map("mime_type") @db.VarChar(255)
-  contentHash      String    @map("content_hash") @db.VarChar(64)
-  status           String    @default("pending") @db.VarChar(32)
-  currentVersionId String?   @map("current_version_id") @db.Uuid
-  createdBy        String?   @map("created_by") @db.Uuid
-  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
-  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_documents_tenant_id_tenants")
-  currentVersion DocumentVersion?  @relation("DocumentCurrentVersion", fields: [currentVersionId], references: [id], onDelete: SetNull, map: "fk_documents_current_version_id_document_versions")
-  creator        User?             @relation(fields: [createdBy], references: [id], onDelete: SetNull, map: "fk_documents_created_by_users")
-  versions       DocumentVersion[] @relation("DocumentVersions")
-  acls           DocumentAcl[]
-  chunks         Chunk[]
-  jobs           Job[]
-
-  @@unique([tenantId, contentHash], map: "uq_documents_tenant_id")
-  @@index([tenantId], map: "ix_documents_tenant_id")
-  @@map("documents")
-}
-
+/// One grant per principal per document. Levels: read < write < admin (allow-only).
 model DocumentAcl {
-  documentId    String @map("document_id") @db.Uuid
-  tenantId      String @map("tenant_id") @db.Uuid
-  principalType String @map("principal_type") @db.VarChar(32)
-  principalId   String @map("principal_id") @db.Uuid
-  permission    String @db.VarChar(32)
+  id            String   @id(map: "pk_document_acls") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  documentId    String   @map("document_id") @db.Uuid
+  principalType String   @map("principal_type") @db.VarChar(32)
+  userId        String?  @map("user_id") @db.Uuid
+  groupId       String?  @map("group_id") @db.Uuid
+  permission    String   @db.VarChar(32)
+  grantedBy     String?  @map("granted_by") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade, map: "fk_document_acls_document_id_documents")
   tenant   Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_document_acls_tenant_id_tenants")
+  document Document @relation(fields: [tenantId, documentId], references: [tenantId, id], onDelete: Cascade, map: "fk_document_acls_document_id_documents")
+  user     User?    @relation("AclUser", fields: [tenantId, userId], references: [tenantId, id], onDelete: Cascade, map: "fk_document_acls_user_id_users")
+  group    Group?   @relation(fields: [tenantId, groupId], references: [tenantId, id], onDelete: Cascade, map: "fk_document_acls_group_id_groups")
+  granter  User?    @relation("AclGrantedBy", fields: [tenantId, grantedBy], references: [tenantId, id], onDelete: NoAction, map: "fk_document_acls_granted_by_users")
 
-  @@id([documentId, principalType, principalId, permission], map: "pk_document_acls")
-  @@index([tenantId, principalType, principalId], map: "ix_document_acls_tenant_principal")
+  @@unique([tenantId, id], map: "uq_document_acls_tenant_id_id")
+  @@unique([tenantId, documentId, userId], map: "uq_document_acls_tenant_id_document_id_user_id")
+  @@unique([tenantId, documentId, groupId], map: "uq_document_acls_tenant_id_document_id_group_id")
+  @@index([tenantId, userId], map: "ix_document_acls_tenant_id_user_id")
+  @@index([tenantId, groupId], map: "ix_document_acls_tenant_id_group_id")
   @@map("document_acls")
 }
 
+// ---------------------------------------------------------------------------
+// Documents and ingestion (RLS)
+// ---------------------------------------------------------------------------
+
+model Document {
+  id                String    @id(map: "pk_documents") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  title             String    @db.VarChar(512)
+  /// Lifecycle only: active or deleting. The status users see comes from the versions.
+  status            String    @default("active") @db.VarChar(32)
+  currentVersionId  String?   @map("current_version_id") @db.Uuid
+  createdBy         String?   @map("created_by") @db.Uuid
+  aclRevision       Int       @default(0) @map("acl_revision")
+  aclSyncedRevision Int       @default(0) @map("acl_synced_revision")
+  legalHoldAt       DateTime? @map("legal_hold_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy         String?   @map("deleted_by") @db.Uuid
+  purgeAfter        DateTime? @map("purge_after") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant         Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_documents_tenant_id_tenants")
+  currentVersion DocumentVersion?  @relation("DocumentCurrentVersion", fields: [tenantId, currentVersionId], references: [tenantId, id], onDelete: NoAction, map: "fk_documents_current_version_id_document_versions")
+  creator        User?             @relation("DocumentCreatedBy", fields: [tenantId, createdBy], references: [tenantId, id], onDelete: NoAction, map: "fk_documents_created_by_users")
+  deleter        User?             @relation("DocumentDeletedBy", fields: [tenantId, deletedBy], references: [tenantId, id], onDelete: NoAction, map: "fk_documents_deleted_by_users")
+  versions       DocumentVersion[] @relation("DocumentVersions")
+  acls           DocumentAcl[]
+  uploadSessions UploadSession[]
+  chunks         Chunk[]
+
+  @@unique([tenantId, id], map: "uq_documents_tenant_id_id")
+  @@index([tenantId, createdAt], map: "ix_documents_tenant_id_created_at")
+  @@index([purgeAfter], map: "ix_documents_purge_after")
+  @@map("documents")
+}
+
+/// One uploaded file. The duplicate rule is a partial unique index on (tenant_id, content_hash).
 model DocumentVersion {
-  id                  String   @id(map: "pk_document_versions") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId            String   @map("tenant_id") @db.Uuid
-  documentId          String   @map("document_id") @db.Uuid
-  version             Int
-  objectKey           String   @map("object_key")
-  sizeBytes           BigInt   @map("size_bytes")
-  pageCount           Int?     @map("page_count")
-  parser              String?  @db.VarChar(100)
-  parserVersion       String?  @map("parser_version") @db.VarChar(50)
-  extractionQuality   Float?   @map("extraction_quality")
-  injectionRiskScore  Float?   @map("injection_risk_score")
-  status              String   @default("pending") @db.VarChar(32)
-  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String    @id(map: "pk_document_versions") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String    @map("tenant_id") @db.Uuid
+  documentId         String    @map("document_id") @db.Uuid
+  version            Int
+  /// SHA-256 hex, set by the worker after streaming the file.
+  contentHash        String?   @map("content_hash") @db.Char(64)
+  quarantineKey      String?   @map("quarantine_key")
+  /// Set once the file is promoted to raw/.
+  objectKey          String?   @map("object_key")
+  sizeBytes          BigInt    @map("size_bytes")
+  declaredMime       String?   @map("declared_mime") @db.VarChar(255)
+  detectedMime       String?   @map("detected_mime") @db.VarChar(255)
+  originalFilename   String    @map("original_filename") @db.VarChar(512)
+  status             String    @default("pending") @db.VarChar(32)
+  rejectionReason    String?   @map("rejection_reason") @db.VarChar(32)
+  errorCode          String?   @map("error_code") @db.VarChar(64)
+  errorMessage       String?   @map("error_message")
+  pageCount          Int?      @map("page_count")
+  ocrPageCount       Int?      @map("ocr_page_count")
+  parser             String?   @db.VarChar(100)
+  parserVersion      String?   @map("parser_version") @db.VarChar(50)
+  extractionQuality  Float?    @map("extraction_quality") @db.Real
+  injectionRiskScore Float?    @map("injection_risk_score") @db.Real
+  createdBy          String?   @map("created_by") @db.Uuid
+  extractStartedAt   DateTime? @map("extract_started_at") @db.Timestamptz(6)
+  ingestedAt         DateTime? @map("ingested_at") @db.Timestamptz(6)
+  supersededAt       DateTime? @map("superseded_at") @db.Timestamptz(6)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(6)
+  deletedBy          String?   @map("deleted_by") @db.Uuid
+  purgeAfter         DateTime? @map("purge_after") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  tenant           Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_document_versions_tenant_id_tenants")
-  document         Document   @relation("DocumentVersions", fields: [documentId], references: [id], onDelete: Cascade, map: "fk_document_versions_document_id_documents")
-  currentForDocs   Document[] @relation("DocumentCurrentVersion")
-  chunks           Chunk[]
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_document_versions_tenant_id_tenants")
+  document       Document               @relation("DocumentVersions", fields: [tenantId, documentId], references: [tenantId, id], onDelete: Cascade, map: "fk_document_versions_document_id_documents")
+  creator        User?                  @relation("VersionCreatedBy", fields: [tenantId, createdBy], references: [tenantId, id], onDelete: NoAction, map: "fk_document_versions_created_by_users")
+  deleter        User?                  @relation("VersionDeletedBy", fields: [tenantId, deletedBy], references: [tenantId, id], onDelete: NoAction, map: "fk_document_versions_deleted_by_users")
+  currentForDocs Document[]             @relation("DocumentCurrentVersion")
+  uploadSessions UploadSession[]
+  chunks         Chunk[]
+  indexes        DocumentVersionIndex[]
+  citations      Citation[]
 
-  @@unique([documentId, version], map: "uq_document_versions_document_id")
+  @@unique([tenantId, id], map: "uq_document_versions_tenant_id_id")
+  @@unique([tenantId, documentId, version], map: "uq_document_versions_tenant_id_document_id_version")
+  @@index([purgeAfter], map: "ix_document_versions_purge_after")
   @@map("document_versions")
 }
 
+model UploadSession {
+  id                String   @id(map: "pk_upload_sessions") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  /// Set when the upload is a new version of an existing document.
+  documentId        String?  @map("document_id") @db.Uuid
+  declaredFilename  String   @map("declared_filename") @db.VarChar(512)
+  declaredSizeBytes BigInt   @map("declared_size_bytes")
+  declaredMime      String   @map("declared_mime") @db.VarChar(255)
+  declaredSha256    String?  @map("declared_sha256") @db.Char(64)
+  objectKey         String   @map("object_key")
+  s3UploadId        String   @map("s3_upload_id") @db.VarChar(1024)
+  partSizeBytes     Int      @map("part_size_bytes")
+  status            String   @default("initiated") @db.VarChar(32)
+  expiresAt         DateTime @map("expires_at") @db.Timestamptz(6)
+  documentVersionId String?  @map("document_version_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_upload_sessions_tenant_id_tenants")
+  user            User             @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, map: "fk_upload_sessions_user_id_users")
+  document        Document?        @relation(fields: [tenantId, documentId], references: [tenantId, id], onDelete: Cascade, map: "fk_upload_sessions_document_id_documents")
+  documentVersion DocumentVersion? @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Cascade, map: "fk_upload_sessions_document_version_id_document_versions")
+
+  @@unique([tenantId, id], map: "uq_upload_sessions_tenant_id_id")
+  @@index([tenantId, userId, status], map: "ix_upload_sessions_tenant_id_user_id_status")
+  @@index([status, expiresAt], map: "ix_upload_sessions_status_expires_at")
+  @@map("upload_sessions")
+}
+
+/// The chunk id is also the Qdrant point id. Only leaf chunks are embedded.
 model Chunk {
-  id                String   @id(map: "pk_chunks") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                String   @id(map: "pk_chunks") @default(dbgenerated("uuidv7()")) @db.Uuid
   tenantId          String   @map("tenant_id") @db.Uuid
   documentId        String   @map("document_id") @db.Uuid
   documentVersionId String   @map("document_version_id") @db.Uuid
   parentChunkId     String?  @map("parent_chunk_id") @db.Uuid
   ordinal           Int
+  level             Int      @default(0) @db.SmallInt
+  isLeaf            Boolean  @default(true) @map("is_leaf")
   text              String
+  textHash          String   @map("text_hash") @db.Char(64)
   tokenCount        Int      @map("token_count")
   pageStart         Int?     @map("page_start")
   pageEnd           Int?     @map("page_end")
-  sectionPath       Json     @default("[]") @map("section_path") @db.JsonB
+  charStart         Int?     @map("char_start")
+  charEnd           Int?     @map("char_end")
+  sectionPath       String[] @default([]) @map("section_path")
   chunkerVersion    String   @map("chunker_version") @db.VarChar(50)
-  embeddingModel    String?  @map("embedding_model") @db.VarChar(100)
-  indexVersion      String?  @map("index_version") @db.VarChar(50)
   metadata          Json     @default("{}") @db.JsonB
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_chunks_tenant_id_tenants")
-  document        Document        @relation(fields: [documentId], references: [id], onDelete: Cascade, map: "fk_chunks_document_id_documents")
-  documentVersion DocumentVersion @relation(fields: [documentVersionId], references: [id], onDelete: Cascade, map: "fk_chunks_document_version_id_document_versions")
-  parent          Chunk?          @relation("ChunkParent", fields: [parentChunkId], references: [id], onDelete: Cascade, map: "fk_chunks_parent_chunk_id_chunks")
+  document        Document        @relation(fields: [tenantId, documentId], references: [tenantId, id], onDelete: Cascade, map: "fk_chunks_document_id_documents")
+  documentVersion DocumentVersion @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Cascade, map: "fk_chunks_document_version_id_document_versions")
+  parent          Chunk?          @relation("ChunkParent", fields: [tenantId, parentChunkId], references: [tenantId, id], onDelete: Cascade, map: "fk_chunks_parent_chunk_id_chunks")
   children        Chunk[]         @relation("ChunkParent")
 
-  @@index([tenantId, documentVersionId], map: "ix_chunks_tenant_id_document_version_id")
+  @@unique([tenantId, id], map: "uq_chunks_tenant_id_id")
+  @@unique([tenantId, documentVersionId, ordinal], map: "uq_chunks_tenant_id_document_version_id_ordinal")
   @@map("chunks")
 }
 
+/// Which versions are embedded in which search index. The resume point for a reindex.
+model DocumentVersionIndex {
+  tenantId          String    @map("tenant_id") @db.Uuid
+  documentVersionId String    @map("document_version_id") @db.Uuid
+  indexId           String    @map("index_id") @db.Uuid
+  status            String    @default("pending") @db.VarChar(32)
+  chunkCount        Int       @default(0) @map("chunk_count")
+  embeddedCount     Int       @default(0) @map("embedded_count")
+  indexedAt         DateTime? @map("indexed_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_document_version_indexes_tenant_id_tenants")
+  documentVersion DocumentVersion @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Cascade, map: "fk_document_version_indexes_document_version_id")
+  index           SearchIndex     @relation(fields: [indexId], references: [id], onDelete: NoAction, map: "fk_document_version_indexes_index_id_search_indexes")
+
+  @@id([tenantId, documentVersionId, indexId], map: "pk_document_version_indexes")
+  @@index([indexId, status], map: "ix_document_version_indexes_index_id_status")
+  @@map("document_version_indexes")
+}
+
+/// User-facing job status. Temporal is the source of truth for execution.
+/// Document, version and index links have no FKs: jobs outlive what they act on.
 model Job {
-  id         String    @id(map: "pk_jobs") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenantId   String    @map("tenant_id") @db.Uuid
-  kind       String    @db.VarChar(32)
-  status     String    @default("queued") @db.VarChar(32)
-  documentId String?   @map("document_id") @db.Uuid
-  workflowId String?   @map("workflow_id") @db.VarChar(255)
-  attempt    Int       @default(0)
-  error      String?
-  payload    Json      @default("{}") @db.JsonB
-  startedAt  DateTime? @map("started_at") @db.Timestamptz(6)
-  finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
-  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt  DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                String    @id(map: "pk_jobs") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId          String    @map("tenant_id") @db.Uuid
+  kind              String    @db.VarChar(32)
+  status            String    @default("queued") @db.VarChar(32)
+  /// Lower runs sooner. Interactive uploads 100, bulk and reindex 200.
+  priority          Int       @default(100) @db.SmallInt
+  documentId        String?   @map("document_id") @db.Uuid
+  documentVersionId String?   @map("document_version_id") @db.Uuid
+  indexId           String?   @map("index_id") @db.Uuid
+  workflowId        String?   @unique(map: "uq_jobs_workflow_id") @map("workflow_id") @db.VarChar(255)
+  runId             String?   @map("run_id") @db.VarChar(255)
+  attempt           Int       @default(0)
+  step              String?   @db.VarChar(100)
+  progressCurrent   Int?      @map("progress_current")
+  progressTotal     Int?      @map("progress_total")
+  errorCode         String?   @map("error_code") @db.VarChar(64)
+  errorMessage      String?   @map("error_message")
+  createdBy         String?   @map("created_by") @db.Uuid
+  admittedAt        DateTime? @map("admitted_at") @db.Timestamptz(6)
+  startedAt         DateTime? @map("started_at") @db.Timestamptz(6)
+  finishedAt        DateTime? @map("finished_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_jobs_tenant_id_tenants")
-  document Document? @relation(fields: [documentId], references: [id], onDelete: SetNull, map: "fk_jobs_document_id_documents")
+  tenant  Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_jobs_tenant_id_tenants")
+  creator User?  @relation(fields: [tenantId, createdBy], references: [tenantId, id], onDelete: NoAction, map: "fk_jobs_created_by_users")
 
+  @@unique([tenantId, id], map: "uq_jobs_tenant_id_id")
   @@index([tenantId, status], map: "ix_jobs_tenant_id_status")
+  @@index([tenantId, documentId], map: "ix_jobs_tenant_id_document_id")
+  @@index([status, priority, createdAt], map: "ix_jobs_status_priority_created_at")
   @@map("jobs")
 }
 
+// ---------------------------------------------------------------------------
+// Answering (RLS)
+// ---------------------------------------------------------------------------
+
+model Conversation {
+  id        String   @id(map: "pk_conversations") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  title     String?  @db.VarChar(512)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_conversations_tenant_id_tenants")
+  user    User    @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, map: "fk_conversations_user_id_users")
+  queries Query[]
+
+  @@unique([tenantId, id], map: "uq_conversations_tenant_id_id")
+  @@index([tenantId, userId, createdAt], map: "ix_conversations_tenant_id_user_id_created_at")
+  @@map("conversations")
+}
+
+model Query {
+  id                 String   @id(map: "pk_queries") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId           String   @map("tenant_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  conversationId     String?  @map("conversation_id") @db.Uuid
+  question           String
+  source             String   @default("user") @db.VarChar(32)
+  indexId            String?  @map("index_id") @db.Uuid
+  /// Snapshot of the user's principal set, e.g. {t, u:<id>, g:<id>}.
+  aclPrincipals      String[] @default([]) @map("acl_principals")
+  /// Optional narrowing of the question to specific documents.
+  documentIds        String[] @default([]) @map("document_ids") @db.Uuid
+  status             String   @default("pending") @db.VarChar(32)
+  retrievedCount     Int?     @map("retrieved_count")
+  latencyMs          Int?     @map("latency_ms")
+  timeToFirstTokenMs Int?     @map("time_to_first_token_ms")
+  requestId          String?  @map("request_id") @db.VarChar(64)
+  traceId            String?  @map("trace_id") @db.VarChar(32)
+  langfuseTraceId    String?  @map("langfuse_trace_id") @db.VarChar(64)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_queries_tenant_id_tenants")
+  user         User          @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, map: "fk_queries_user_id_users")
+  conversation Conversation? @relation(fields: [tenantId, conversationId], references: [tenantId, id], onDelete: Cascade, map: "fk_queries_conversation_id_conversations")
+  answers      Answer[]
+
+  @@unique([tenantId, id], map: "uq_queries_tenant_id_id")
+  @@index([tenantId, createdAt], map: "ix_queries_tenant_id_created_at")
+  @@index([tenantId, conversationId], map: "ix_queries_tenant_id_conversation_id")
+  @@map("queries")
+}
+
+model Answer {
+  id            String   @id(map: "pk_answers") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId      String   @map("tenant_id") @db.Uuid
+  queryId       String   @map("query_id") @db.Uuid
+  text          String
+  provider      String   @db.VarChar(100)
+  model         String   @db.VarChar(255)
+  promptVersion String   @map("prompt_version") @db.VarChar(50)
+  confidence    Float?   @db.Real
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant    Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_answers_tenant_id_tenants")
+  query     Query      @relation(fields: [tenantId, queryId], references: [tenantId, id], onDelete: Cascade, map: "fk_answers_query_id_queries")
+  citations Citation[]
+  feedback  Feedback[]
+
+  @@unique([tenantId, id], map: "uq_answers_tenant_id_id")
+  @@index([tenantId, queryId], map: "ix_answers_tenant_id_query_id")
+  @@map("answers")
+}
+
+/// Purging the cited version deletes its citations (and their quotes).
+model Citation {
+  id                String   @id(map: "pk_citations") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  answerId          String   @map("answer_id") @db.Uuid
+  ordinal           Int
+  /// No FK: chunks are replaced on re-chunking.
+  chunkId           String   @map("chunk_id") @db.Uuid
+  documentId        String   @map("document_id") @db.Uuid
+  documentVersionId String   @map("document_version_id") @db.Uuid
+  pageStart         Int?     @map("page_start")
+  pageEnd           Int?     @map("page_end")
+  charStart         Int?     @map("char_start")
+  charEnd           Int?     @map("char_end")
+  quote             String
+  score             Float?   @db.Real
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  tenant          Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_citations_tenant_id_tenants")
+  answer          Answer          @relation(fields: [tenantId, answerId], references: [tenantId, id], onDelete: Cascade, map: "fk_citations_answer_id_answers")
+  documentVersion DocumentVersion @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Cascade, map: "fk_citations_document_version_id_document_versions")
+
+  @@unique([tenantId, id], map: "uq_citations_tenant_id_id")
+  @@unique([tenantId, answerId, ordinal], map: "uq_citations_tenant_id_answer_id_ordinal")
+  @@index([tenantId, documentVersionId], map: "ix_citations_tenant_id_document_version_id")
+  @@map("citations")
+}
+
+model Feedback {
+  id        String   @id(map: "pk_feedback") @default(dbgenerated("uuidv7()")) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  answerId  String   @map("answer_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  rating    String   @db.VarChar(32)
+  reason    String?  @db.VarChar(64)
+  comment   String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_feedback_tenant_id_tenants")
+  answer Answer @relation(fields: [tenantId, answerId], references: [tenantId, id], onDelete: Cascade, map: "fk_feedback_answer_id_answers")
+  user   User   @relation(fields: [tenantId, userId], references: [tenantId, id], onDelete: NoAction, map: "fk_feedback_user_id_users")
+
+  @@unique([tenantId, id], map: "uq_feedback_tenant_id_id")
+  @@unique([tenantId, answerId, userId], map: "uq_feedback_tenant_id_answer_id_user_id")
+  @@map("feedback")
+}
+
+// ---------------------------------------------------------------------------
+// Usage and audit
+// ---------------------------------------------------------------------------
+
+/// One row per provider call. Partitioned by month on occurred_at (raw SQL). No FKs: it's a log.
+model UsageEvent {
+  id                String   @default(dbgenerated("uuidv7()")) @db.Uuid
+  occurredAt        DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  tenantId          String   @map("tenant_id") @db.Uuid
+  kind              String   @db.VarChar(32)
+  source            String   @db.VarChar(32)
+  provider          String   @db.VarChar(100)
+  model             String   @db.VarChar(255)
+  inputTokens       Int      @default(0) @map("input_tokens")
+  outputTokens      Int      @default(0) @map("output_tokens")
+  units             Int      @default(0)
+  costMicros        BigInt   @default(0) @map("cost_micros")
+  currency          String   @default("USD") @db.Char(3)
+  requestId         String?  @map("request_id") @db.VarChar(64)
+  traceId           String?  @map("trace_id") @db.VarChar(32)
+  userId            String?  @map("user_id") @db.Uuid
+  queryId           String?  @map("query_id") @db.Uuid
+  jobId             String?  @map("job_id") @db.Uuid
+  documentVersionId String?  @map("document_version_id") @db.Uuid
+
+  @@id([id, occurredAt], map: "pk_usage_events")
+  @@index([tenantId, occurredAt], map: "ix_usage_events_tenant_id_occurred_at")
+  @@map("usage_events")
+}
+
+model UsageDaily {
+  tenantId     String   @map("tenant_id") @db.Uuid
+  day          DateTime @db.Date
+  kind         String   @db.VarChar(32)
+  source       String   @db.VarChar(32)
+  provider     String   @db.VarChar(100)
+  model        String   @db.VarChar(255)
+  inputTokens  BigInt   @default(0) @map("input_tokens")
+  outputTokens BigInt   @default(0) @map("output_tokens")
+  units        BigInt   @default(0)
+  costMicros   BigInt   @default(0) @map("cost_micros")
+  currency     String   @default("USD") @db.Char(3)
+  eventCount   Int      @default(0) @map("event_count")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "fk_usage_daily_tenant_id_tenants")
+
+  @@id([tenantId, day, kind, source, provider, model], map: "pk_usage_daily")
+  @@map("usage_daily")
+}
+
+/// Append-only. Partitioned by month on created_at (raw SQL). No FKs, so history survives the tenant.
 model AuditLog {
-  id          BigInt   @id(map: "pk_audit_log") @default(autoincrement())
-  tenantId    String?  @map("tenant_id") @db.Uuid
-  actorUserId String?  @map("actor_user_id") @db.Uuid
-  action      String   @db.VarChar(100)
-  resourceType String  @map("resource_type") @db.VarChar(100)
-  resourceId  String?  @map("resource_id") @db.VarChar(255)
-  requestId   String?  @map("request_id") @db.VarChar(64)
-  traceId     String?  @map("trace_id") @db.VarChar(32)
-  ip          String?  @db.VarChar(45)
-  details     Json     @default("{}") @db.JsonB
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id           String   @default(dbgenerated("uuidv7()")) @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Null only for platform-level actions.
+  tenantId     String?  @map("tenant_id") @db.Uuid
+  actorType    String   @map("actor_type") @db.VarChar(32)
+  actorUserId  String?  @map("actor_user_id") @db.Uuid
+  action       String   @db.VarChar(100)
+  resourceType String   @map("resource_type") @db.VarChar(100)
+  resourceId   String?  @map("resource_id") @db.VarChar(255)
+  outcome      String   @default("success") @db.VarChar(32)
+  requestId    String?  @map("request_id") @db.VarChar(64)
+  traceId      String?  @map("trace_id") @db.VarChar(32)
+  ip           String?  @db.Inet
+  userAgent    String?  @map("user_agent") @db.VarChar(512)
+  /// Ids and changed field names only, never document text.
+  details      Json     @default("{}") @db.JsonB
 
-  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull, map: "fk_audit_log_tenant_id_tenants")
-
+  @@id([id, createdAt], map: "pk_audit_log")
   @@index([tenantId, createdAt], map: "ix_audit_log_tenant_id_created_at")
   @@map("audit_log")
 }
