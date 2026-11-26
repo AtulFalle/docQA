@@ -80,7 +80,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
 
         if (statusCode >= 500) {
-            this.logger.error({ err: exception, requestId }, 'Unhandled exception');
+            // request_id, trace_id and span_id come from the request logger's bindings.
+            this.logger.error({ err: exception }, 'Unhandled exception');
             message = statusCode === 500 ? 'Internal server error' : message;
         }
 

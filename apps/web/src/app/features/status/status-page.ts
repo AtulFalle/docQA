@@ -3,8 +3,12 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { type HealthStatus, type ReadinessResponse } from '@docqa/contracts';
 import { Subject, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
+import { requestIdOf } from '../../core/http/request-id';
 
-type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'loaded'; data: ReadinessResponse };
+type State =
+    | { kind: 'loading' }
+    | { kind: 'error'; requestId?: string }
+    | { kind: 'loaded'; data: ReadinessResponse };
 
 interface Row {
     name: string;
@@ -35,7 +39,9 @@ export class StatusPage {
             switchMap(() =>
                 this.api.readiness().pipe(
                     map((data): State => ({ kind: 'loaded', data })),
-                    catchError(() => of<State>({ kind: 'error' })),
+                    catchError((err: unknown) =>
+                        of<State>({ kind: 'error', requestId: requestIdOf(err) }),
+                    ),
                     startWith<State>({ kind: 'loading' }),
                 ),
             ),
@@ -62,6 +68,12 @@ export class StatusPage {
         return [...toRows(s.data.info), ...toRows(s.data.error)].sort((a, b) =>
             a.name.localeCompare(b.name),
         );
+    });
+
+    /** Support reference shown with the error, so the failure can be found in the logs. */
+    protected readonly errorReference = computed(() => {
+        const s = this.state();
+        return s.kind === 'error' ? s.requestId : undefined;
     });
 
     protected refresh(): void {

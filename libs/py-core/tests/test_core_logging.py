@@ -1,9 +1,10 @@
 import json
+import logging
 
 import pytest
 from opentelemetry.sdk.trace import TracerProvider
 
-from docqa_core.logging import configure_logging, get_logger
+from docqa_core.logging import configure_logging, get_logger, log_context
 
 
 def _last_json(out: str) -> dict[str, object]:
@@ -40,3 +41,27 @@ def test_trace_id_inside_span(capsys: pytest.CaptureFixture[str]) -> None:
     record = _last_json(capsys.readouterr().out)
     assert record["trace_id"] == expected
     assert len(str(record["span_id"])) == 16
+
+
+def test_static_fields_and_log_context(capsys: pytest.CaptureFixture[str]) -> None:
+    configure_logging(json=True, service="svc", environment="test")
+    with log_context(request_id="r1", tenant_id="t1"):
+        get_logger("t").info("inside")
+    get_logger("t").info("outside")
+    inside, outside = [json.loads(ln) for ln in capsys.readouterr().out.splitlines() if ln.strip()][
+        -2:
+    ]
+    assert (inside["service"], inside["env"]) == ("svc", "test")
+    assert (inside["request_id"], inside["tenant_id"]) == ("r1", "t1")
+    assert "request_id" not in outside
+    configure_logging()
+
+
+def test_configure_keeps_other_handlers() -> None:
+    other = logging.NullHandler()
+    logging.getLogger().addHandler(other)
+    try:
+        configure_logging()
+        assert other in logging.getLogger().handlers
+    finally:
+        logging.getLogger().removeHandler(other)

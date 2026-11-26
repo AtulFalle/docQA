@@ -52,6 +52,11 @@
     @if (state().kind === 'error') {
         <p role="alert" class="status__error">
             The status check failed. Check your connection and try again.
+            @if (errorReference(); as ref) {
+                <span class="status__reference"
+                    >Reference: <code>{{ ref }}</code></span
+                >
+            }
         </p>
     }
 </section>

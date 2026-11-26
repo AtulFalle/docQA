@@ -288,3 +288,31 @@ jobs:
       - name: Validate compose file
         if: matrix.name == 'web'
         run: docker compose -f infra/docker/docker-compose.yml --profile app config -q
+
+  observability:
+    name: observability (logs + traces end to end)
+    runs-on: ubuntu-latest
+    needs: [lint, js]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Start backend, ai-api and the LGTM stack
+        run: |
+          docker compose -f infra/docker/docker-compose.yml --profile app \
+            up -d --build postgres otel-lgtm backend-migrate ai-api backend
+
+      - name: Wait for the backend
+        run: |
+          for _ in $(seq 1 60); do
+            curl -fsS http://localhost:3000/api/v1/health && exit 0
+            sleep 2
+          done
+          exit 1
+
+      - name: One request is traceable across services (Loki + Tempo)
+        run: python3 -I infra/scripts/verify_observability.py --timeout 120
+
+      - name: Service logs on failure
+        if: failure()
+        run: docker compose -f infra/docker/docker-compose.yml --profile app logs backend ai-api otel-lgtm --tail 200

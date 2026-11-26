@@ -3,11 +3,10 @@
 import time
 import uuid
 
-import structlog
 from starlette.datastructures import MutableHeaders
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
-from docqa_core.logging import get_logger
+from docqa_core.logging import bind_log_context, clear_log_context, get_logger
 
 REQUEST_ID_HEADER = "X-Request-ID"
 
@@ -27,10 +26,8 @@ class RequestContextMiddleware:
         headers = dict(scope.get("headers") or [])
         incoming = headers.get(REQUEST_ID_HEADER.lower().encode(), b"").decode("latin-1")
         request_id = incoming or uuid.uuid4().hex
-        structlog.contextvars.clear_contextvars()
-        structlog.contextvars.bind_contextvars(
-            request_id=request_id, method=scope["method"], path=scope["path"]
-        )
+        clear_log_context()
+        bind_log_context(request_id=request_id, method=scope["method"], path=scope["path"])
         status_code = 500
         start = time.perf_counter()
 
@@ -49,4 +46,4 @@ class RequestContextMiddleware:
                 status_code=status_code,
                 duration_ms=round((time.perf_counter() - start) * 1000, 2),
             )
-            structlog.contextvars.clear_contextvars()
+            clear_log_context()

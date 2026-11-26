@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { requestContextMiddleware } from './common/request-context';
 import { type Env } from './config/env';
 import { writeOpenApiDocument } from './openapi/openapi';
 
@@ -32,6 +33,8 @@ async function emitNxReadySignal(app: INestApplication): Promise<void> {
 
 async function bootstrap(): Promise<void> {
     const app = await NestFactory.create(AppModule, { bufferLogs: true });
+    // First middleware, so the request id exists before pino-http and every handler run.
+    app.use(requestContextMiddleware);
     const logger = app.get(Logger);
     app.useLogger(logger);
     configure(app);
