@@ -135,7 +135,7 @@ Target: WCAG 2.2 AA for every page.
 - State is a modifier class, not a bare second class: `status__badge--down`, never `.badge.down`. Bind it with `[class.status__badge--down]="isDown()"`. **[Review]**
 - Write elements and modifiers with `&__` / `&--` inside the block. Don't style tags or IDs: no `nav a`, `form`, `#main`. **[Enforced: `selector-no-qualifying-type`, `selector-max-id`, `selector-max-compound-selectors: 3`, `max-nesting-depth: 3`]**
 - No `!important`; the one exception is the global reduced-motion override. **[Enforced: `declaration-no-important`]**
-- Use design tokens (`var(--space-3)`, `var(--color-…)`) from `styles.scss`; no raw colours or spacing in components. **[Review]**
+- Build UI from ng-elemental (`El*`) components in `libs/ui` (copy-in, added with `npx @ng-elemental/cli add`, never edited by hand). Use its design tokens (`var(--el-space-3)`, `var(--el-color-…)`); brand values live only in `libs/ui/theme/tokens.scss`. No raw colours or spacing in components. **[Review]**
 - Run `pnpm nx run web:lint-styles` (pre-commit runs stylelint with `--fix`).
 
 ```scss

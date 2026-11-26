@@ -8,15 +8,15 @@
 .app {
     &__skip-link {
         position: absolute;
-        left: var(--space-2);
+        left: var(--el-space-2);
         top: -4rem;
-        background: var(--color-surface);
-        padding: var(--space-2) var(--space-3);
-        border-radius: var(--radius);
+        background: var(--el-color-surface);
+        padding: var(--el-space-2) var(--el-space-3);
+        border-radius: var(--el-radius-md);
         z-index: 10;
 
         &:focus {
-            top: var(--space-2);
+            top: var(--el-space-2);
         }
     }
 
@@ -24,37 +24,37 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: var(--space-4);
-        padding: var(--space-3) var(--space-4);
-        background: var(--color-surface);
-        border-bottom: 1px solid var(--color-border);
+        gap: var(--el-space-4);
+        padding: var(--el-space-3) var(--el-space-4);
+        background: var(--el-color-surface);
+        border-bottom: 1px solid var(--el-color-outline-variant);
     }
 
     &__brand {
         font-weight: 700;
         font-size: 1.25rem;
-        color: var(--color-text);
+        color: var(--el-color-on-surface);
         text-decoration: none;
     }
 
     &__nav {
         display: flex;
-        gap: var(--space-2);
+        gap: var(--el-space-2);
     }
 
     &__nav-link {
-        padding: var(--space-1) var(--space-3);
-        border-radius: var(--radius);
-        color: var(--color-text);
+        padding: var(--el-space-1) var(--el-space-3);
+        border-radius: var(--el-radius-md);
+        color: var(--el-color-on-surface);
         text-decoration: none;
 
         &:hover {
-            background: var(--color-bg);
+            background: var(--el-color-surface-container);
         }
 
         &--active {
-            background: var(--color-primary);
-            color: var(--color-on-primary);
+            background: var(--el-color-primary);
+            color: var(--el-color-on-primary);
         }
     }
 
@@ -63,13 +63,13 @@
         width: 100%;
         max-width: 56rem;
         margin: 0 auto;
-        padding: var(--space-5) var(--space-4);
+        padding: var(--el-space-8) var(--el-space-4);
     }
 
     &__footer {
-        padding: var(--space-3) var(--space-4);
-        border-top: 1px solid var(--color-border);
-        color: var(--color-muted);
+        padding: var(--el-space-3) var(--el-space-4);
+        border-top: 1px solid var(--el-color-outline-variant);
+        color: var(--el-color-on-surface-variant);
         font-size: 0.875rem;
     }
 }

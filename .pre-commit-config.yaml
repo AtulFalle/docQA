@@ -59,12 +59,13 @@ repos:
         entry: pnpm exec prettier --write --ignore-unknown
         language: system
         types_or: [ts, javascript, html, scss, css, json, yaml]
-        exclude: ^(pnpm-lock\.yaml|.*/generated/.*)$
+        exclude: ^(pnpm-lock\.yaml|.*/generated/.*|libs/ui/.*)$
       - id: stylelint
         name: stylelint (SCSS, BEM class names)
         entry: pnpm exec stylelint --fix
         language: system
         types: [scss]
+        exclude: ^libs/ui/
       - id: file-length
         name: file length (max 400 non-blank lines, .py/.scss)
         entry: uv run python tools/check_file_length.py

@@ -13,3 +13,5 @@ apps/backend/src/generated
 **/*.jsonl
 eval/corpus
 .github
+# ng-elemental copy-in source: keep upstream formatting so `ng-elemental add --force` diffs stay clean
+libs/ui

@@ -1,0 +1,258 @@
+:host(.el-chip-host) {
+  display: inline-flex;
+  max-width: 100%;
+}
+
+.el-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--el-space-2);
+  box-sizing: border-box;
+  max-width: 100%;
+  min-height: 2rem;
+  padding-inline: var(--el-space-4);
+  border: var(--el-border-width) solid transparent;
+  border-radius: var(--el-radius-sm);
+  background: transparent;
+  font-family: var(--el-font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: 0.01px;
+  color: var(--el-color-on-surface-variant);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    color 0.15s ease;
+
+  &:disabled,
+  &--disabled {
+    color: var(--el-color-disabled);
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    outline: var(--el-border-width-thick) solid var(--el-color-primary);
+    outline-offset: 2px;
+  }
+
+  &--outlined {
+    border-color: var(--el-color-outline);
+    background: transparent;
+    color: var(--el-color-on-surface-variant);
+  }
+
+  &--filled {
+    border-color: transparent;
+    background: var(--el-color-secondary-container);
+    color: var(--el-color-on-secondary-container);
+  }
+
+  &--elevated {
+    position: relative;
+    isolation: isolate;
+    border-color: transparent;
+    background: var(--el-color-surface);
+    box-shadow: var(--el-shadow-2);
+    color: var(--el-color-on-surface-variant);
+
+    &::before {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: color-mix(in srgb, var(--el-color-primary) 5%, transparent);
+      content: '';
+      pointer-events: none;
+    }
+  }
+
+  &--assist {
+    color: var(--el-color-on-surface);
+  }
+
+  &--with-icon-start {
+    padding-inline-start: var(--el-space-2);
+  }
+
+  &--with-close {
+    gap: 0;
+    padding-inline: 0;
+    overflow: hidden;
+  }
+
+  &--with-close.el-chip--with-icon-start {
+    padding-inline-start: 0;
+  }
+
+  &--success {
+    --el-chip-accent: var(--el-color-success);
+    --el-chip-accent-container: var(--el-color-success-container);
+    --el-chip-on-accent: var(--el-color-on-success-container);
+  }
+
+  &--error {
+    --el-chip-accent: var(--el-color-error);
+    --el-chip-accent-container: var(--el-color-error-container);
+    --el-chip-on-accent: var(--el-color-on-error-container);
+  }
+
+  &--warning {
+    --el-chip-accent: var(--el-color-warning);
+    --el-chip-accent-container: var(--el-color-warning-container);
+    --el-chip-on-accent: var(--el-color-on-warning-container);
+  }
+
+  &--info {
+    --el-chip-accent: var(--el-color-info);
+    --el-chip-accent-container: var(--el-color-info-container);
+    --el-chip-on-accent: var(--el-color-on-info-container);
+  }
+
+  &--success#{&}--outlined,
+  &--error#{&}--outlined,
+  &--warning#{&}--outlined,
+  &--info#{&}--outlined {
+    border-color: var(--el-chip-accent);
+    color: var(--el-chip-accent);
+  }
+
+  &--success#{&}--filled,
+  &--success#{&}--selected,
+  &--success#{&}--elevated,
+  &--error#{&}--filled,
+  &--error#{&}--selected,
+  &--error#{&}--elevated,
+  &--warning#{&}--filled,
+  &--warning#{&}--selected,
+  &--warning#{&}--elevated,
+  &--info#{&}--filled,
+  &--info#{&}--selected,
+  &--info#{&}--elevated {
+    border-color: transparent;
+    background: var(--el-chip-accent-container);
+    color: var(--el-chip-on-accent);
+  }
+
+  &--outlined:not(.el-chip--disabled):hover {
+    background: var(--el-color-hover);
+  }
+
+  &--filled:not(.el-chip--disabled):hover,
+  &--selected:not(.el-chip--disabled):hover {
+    background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  }
+
+  &--success#{&}--filled:not(.el-chip--disabled):hover,
+  &--success#{&}--selected:not(.el-chip--disabled):hover,
+  &--error#{&}--filled:not(.el-chip--disabled):hover,
+  &--error#{&}--selected:not(.el-chip--disabled):hover,
+  &--warning#{&}--filled:not(.el-chip--disabled):hover,
+  &--warning#{&}--selected:not(.el-chip--disabled):hover,
+  &--info#{&}--filled:not(.el-chip--disabled):hover,
+  &--info#{&}--selected:not(.el-chip--disabled):hover {
+    background: color-mix(
+      in srgb,
+      var(--el-chip-accent) 12%,
+      var(--el-chip-accent-container)
+    );
+  }
+
+  &--elevated:not(.el-chip--disabled):hover {
+    box-shadow: var(--el-shadow-1);
+  }
+
+  &__body {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: var(--el-space-2);
+    min-width: 0;
+    min-height: 2rem;
+    padding-inline: var(--el-space-4);
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+
+    &:focus-visible {
+      outline: var(--el-border-width-thick) solid var(--el-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  &--with-close &__body {
+    flex: 0 1 auto;
+    padding-inline-end: var(--el-space-2);
+  }
+
+  &--with-close.el-chip--with-icon-start &__body {
+    padding-inline-start: var(--el-space-2);
+  }
+
+  &__icon-start {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+
+    &:empty {
+      display: none;
+    }
+  }
+
+  &__icon-end {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &:empty {
+      display: none;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.38;
+    }
+
+    &:focus-visible {
+      outline: var(--el-border-width-thick) solid var(--el-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  &--with-close &__icon-end {
+    flex-shrink: 0;
+    width: calc(var(--el-icon-size-md) + var(--el-space-2));
+    height: 2rem;
+    padding-inline-end: var(--el-space-2);
+  }
+
+  &__icon-end:not(:disabled):hover {
+    background: var(--el-color-hover);
+  }
+
+  &__label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

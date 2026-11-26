@@ -1,35 +1,6 @@
+// Layout and widgets come from ng-elemental; only page-specific spacing here.
 .ask {
-    &__banner {
-        background: var(--color-info-bg);
-        color: var(--color-info-text);
-        padding: var(--space-3) var(--space-4);
-        border-radius: var(--radius);
-    }
-
-    &__form {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2);
-        align-items: flex-start;
-    }
-
-    &__label {
-        font-weight: 600;
-    }
-
-    &__input {
-        width: 100%;
-        resize: vertical;
-    }
-
-    &__meta {
-        display: flex;
-        gap: var(--space-4);
-        color: var(--color-muted);
-        font-size: 0.875rem;
-    }
-
-    &__error {
-        color: var(--color-down-text);
+    &__title {
+        margin: 0;
     }
 }

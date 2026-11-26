@@ -1,6 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { type HealthStatus, type ReadinessResponse } from '@docqa/contracts';
+import { ElAlert } from '@docqa/ui/alert/alert';
+import { ElButton } from '@docqa/ui/button/button';
+import { ElCard } from '@docqa/ui/card/card';
+import { ElIcon } from '@docqa/ui/icon/icon';
+import { ElList } from '@docqa/ui/list/list';
+import { ElListItem } from '@docqa/ui/list/list-item';
+import { ElProgress } from '@docqa/ui/progress/progress';
+import { ElStack } from '@docqa/ui/stack/stack';
 import { Subject, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { ApiClient } from '../../core/api/api-client';
 import { requestIdOf } from '../../core/http/request-id';
@@ -25,6 +33,7 @@ const OVERALL: Record<HealthStatus, string> = {
 
 @Component({
     selector: 'dq-status-page',
+    imports: [ElAlert, ElButton, ElCard, ElIcon, ElList, ElListItem, ElProgress, ElStack],
     templateUrl: './status-page.html',
     styleUrl: './status-page.scss',
     changeDetection: ChangeDetectionStrategy.OnPush,

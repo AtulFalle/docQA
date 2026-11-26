@@ -8,6 +8,16 @@ describe('AskPage', () => {
         return { fixture, el: fixture.nativeElement as HTMLElement };
     }
 
+    async function type(
+        fixture: ReturnType<typeof setup>['fixture'],
+        input: HTMLInputElement,
+        value: string,
+    ): Promise<void> {
+        input.value = value;
+        input.dispatchEvent(new Event('input'));
+        await fixture.whenStable();
+    }
+
     it('shows the M1 banner and a disabled submit button', async () => {
         const { fixture, el } = setup();
         await fixture.whenStable();
@@ -17,28 +27,38 @@ describe('AskPage', () => {
         );
     });
 
-    it('has a labelled textarea with maxlength 2000', async () => {
+    it('has a labelled question input', async () => {
         const { fixture, el } = setup();
         await fixture.whenStable();
-        const ta = el.querySelector('textarea') as HTMLTextAreaElement;
         expect(el.querySelector('label[for="question"]')).not.toBeNull();
-        expect(ta.getAttribute('maxlength')).toBe('2000');
+        expect(el.querySelector('input#question')).not.toBeNull();
     });
 
-    it('validates required and updates the counter', async () => {
+    it('updates the counter and requires a question once touched', async () => {
         const { fixture, el } = setup();
         await fixture.whenStable();
-        const ta = el.querySelector('textarea') as HTMLTextAreaElement;
-        ta.value = 'hello';
-        ta.dispatchEvent(new Event('input'));
-        await fixture.whenStable();
+        const input = el.querySelector('input#question') as HTMLInputElement;
+        await type(fixture, input, 'hello');
         expect(el.querySelector('#counter')?.textContent).toContain('5 / 2000');
-        ta.value = '';
-        ta.dispatchEvent(new Event('input'));
-        ta.dispatchEvent(new Event('blur'));
+        expect(el.querySelector('[role="alert"]')).toBeNull();
+
+        await type(fixture, input, '');
+        input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
         await fixture.whenStable();
         expect(el.querySelector('[role="alert"]')?.textContent).toContain(
             'Please enter a question',
         );
+        expect(input.getAttribute('aria-invalid')).toBe('true');
+    });
+
+    it('flags questions over the length limit', async () => {
+        const { fixture, el } = setup();
+        await fixture.whenStable();
+        await type(
+            fixture,
+            el.querySelector('input#question') as HTMLInputElement,
+            'x'.repeat(2001),
+        );
+        expect(el.querySelector('[role="alert"]')?.textContent).toContain('under 2000 characters');
     });
 });

@@ -8,7 +8,14 @@ const BEM = `^${KEBAB}(?:__${KEBAB})?(?:--${KEBAB})?$`;
 
 export default {
     extends: ['stylelint-config-standard-scss'],
-    ignoreFiles: ['**/dist/**', '**/coverage/**', '**/node_modules/**', '**/.angular/**'],
+    // libs/ui is ng-elemental copy-in source (el-* BEM, upstream style); it is not edited by hand.
+    ignoreFiles: [
+        '**/dist/**',
+        '**/coverage/**',
+        '**/node_modules/**',
+        '**/.angular/**',
+        'libs/ui/**',
+    ],
     rules: {
         'selector-class-pattern': [
             BEM,
