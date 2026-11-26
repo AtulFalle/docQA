@@ -10,7 +10,6 @@ dependencies = [
     "pydantic>=2.9",
     "starlette",              # imported directly (ASGI types); version governed by fastapi
     "sqlalchemy[asyncio]>=2.0.35",
-    "structlog>=24.4",
     "uvicorn[standard]>=0.30",
     "opentelemetry-instrumentation-fastapi>=0.48b0",
 ]
