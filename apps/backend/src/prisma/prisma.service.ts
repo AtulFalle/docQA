@@ -4,6 +4,12 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { type Prisma, PrismaClient } from '../generated/prisma/client';
 import { type Env } from '../config/env';
 
+/** Optional per-request identity carried into the database session. */
+export interface TenantContext {
+    userId?: string;
+    requestId?: string;
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
     constructor(config: ConfigService<Env, true>) {
@@ -18,10 +24,20 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
         await this.$disconnect();
     }
 
-    /** Runs `fn` in a transaction with `app.tenant_id` set so Postgres RLS scopes every query. */
-    withTenant<T>(tenantId: string, fn: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+    /**
+     * Runs `fn` in a transaction with the RLS context set: `app.tenant_id` (read by every
+     * tenant policy) plus `app.user_id` and `app.request_id` for defaults and audit.
+     * The settings last for this transaction only, so they are safe behind PgBouncer.
+     */
+    withTenant<T>(
+        tenantId: string,
+        fn: (tx: Prisma.TransactionClient) => Promise<T>,
+        context: TenantContext = {},
+    ): Promise<T> {
         return this.$transaction(async (tx) => {
-            await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true)`;
+            await tx.$executeRaw`SELECT set_config('app.tenant_id', ${tenantId}, true),
+                set_config('app.user_id', ${context.userId ?? ''}, true),
+                set_config('app.request_id', ${context.requestId ?? ''}, true)`;
             return fn(tx);
         });
     }

@@ -37,7 +37,7 @@ Export every new file from `src/index.ts`.
 
 - Ids are `Id`, timestamps are `IsoDateTime` (strings on the wire). Optional fields use `?:`; use `| null` only when the API really sends `null`.
 - Properties are camelCase. Document any non-obvious field with a `/** */` comment, because the comment shows up in both apps.
-- A value set shared with Python must match the `StrEnum` in `libs/py-core/src/docqa_core/db/models.py` exactly.
+- A value set shared with Python must match the `StrEnum` in `libs/py-core/src/docqa_core/db/models/enums.py` exactly (`test_core_value_sets.py` checks it).
 
 ## Adding an endpoint, end to end
 

@@ -35,7 +35,7 @@ Prisma is the source of truth for the Postgres schema.
 2. `pnpm db:migrate:dev` and commit the generated migration SQL.
 3. New tenant-scoped tables (anything with `tenant_id`) must enable and force RLS and add the `tenant_isolation` policy
    (`tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid`, as USING and WITH CHECK) in the migration.
-4. Update the Python mirror (`libs/py-core/src/docqa_core/db/models.py`) in the same PR; a CI contract test compares them.
+4. Update the Python mirror (`libs/py-core/src/docqa_core/db/models/`) in the same PR; a CI contract test compares them.
 
 Other commands: `pnpm db:generate`, `pnpm db:migrate` (deploy), `pnpm db:drift`. The client is generated into
 `src/generated/` (git-ignored) by the `prisma-generate` target, which build/serve/test/lint/typecheck depend on.

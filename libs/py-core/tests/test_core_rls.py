@@ -1,102 +1,122 @@
-"""Cross-tenant leak test (blocking CI gate). Needs DOCQA_TEST_DATABASE_URL (superuser DSN).
+"""Tenant isolation (blocking CI gate). Needs DOCQA_TEST_DATABASE_URL (superuser DSN).
 
-Prisma owns the schema and the RLS policies (apps/backend/prisma). This test does NOT run
-migrations: it assumes the database at DOCQA_TEST_DATABASE_URL is already migrated (CI applies
-the Prisma migrations first). It creates a non-superuser role, grants it table access, and
-asserts that RLS isolates tenants. Rows it inserts are deleted at teardown as superuser.
+Prisma owns the schema, roles and RLS policies (apps/backend/prisma). These tests do NOT run
+migrations: the database must already be migrated. They act as the real application roles
+(docqa_backend, docqa_worker) and remove what they insert at teardown.
 """
 
-import os
 import uuid
-from collections.abc import Iterator
 
 import pytest
-from sqlalchemy import Engine, create_engine, text
+from db_testing import TEST_URL, TenantFactory, as_role
+from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import DBAPIError
 
-TEST_URL = os.environ.get("DOCQA_TEST_DATABASE_URL")
+from docqa_core.db import TENANT_SCOPED_TABLES
 
 pytestmark = [
     pytest.mark.integration,
     pytest.mark.skipif(not TEST_URL, reason="DOCQA_TEST_DATABASE_URL not set"),
 ]
 
-_created_tenants: list[uuid.UUID] = []
+
+def _insert_doc(conn: Connection, tenant: uuid.UUID, title: str) -> uuid.UUID:
+    return conn.execute(
+        text("INSERT INTO documents (tenant_id, title) VALUES (:t, :title) RETURNING id"),
+        {"t": tenant, "title": title},
+    ).scalar_one()
 
 
-@pytest.fixture
-def engine() -> Iterator[Engine]:
-    assert TEST_URL
-    eng = create_engine(TEST_URL)
-    with eng.begin() as conn:
+def test_backend_role_sees_only_its_tenant(engine: Engine, tenants: TenantFactory) -> None:
+    a, b = tenants.make(), tenants.make()
+    with as_role(engine, "docqa_backend", a) as conn:
+        _insert_doc(conn, a, "doc-a")
+    with as_role(engine, "docqa_backend", b) as conn:
+        _insert_doc(conn, b, "doc-b")
+
+    for tenant, expected in ((a, ["doc-a"]), (b, ["doc-b"]), (None, [])):
+        with as_role(engine, "docqa_backend", tenant, commit=False) as conn:
+            titles = conn.execute(text("SELECT title FROM documents")).scalars().all()
+        assert titles == expected
+
+
+def test_cannot_write_another_tenants_row(engine: Engine, tenants: TenantFactory) -> None:
+    a, b = tenants.make(), tenants.make()
+    with (
+        pytest.raises(DBAPIError, match="row-level security"),
+        as_role(engine, "docqa_backend", a, commit=False) as conn,
+    ):
+        _insert_doc(conn, b, "sneaky")
+
+
+def test_composite_foreign_key_rejects_mixed_tenant_rows(
+    engine: Engine, tenants: TenantFactory
+) -> None:
+    a, b = tenants.make(), tenants.make()
+    with as_role(engine, "docqa_backend", a) as conn:
+        doc_a = _insert_doc(conn, a, "doc-a")
+    # As superuser (no RLS), a version of tenant B must still not point at tenant A's document.
+    with pytest.raises(DBAPIError, match="foreign key"), engine.begin() as conn:
         conn.execute(
             text(
-                "DO $$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='docqa_app_test') "
-                "THEN CREATE ROLE docqa_app_test LOGIN PASSWORD 'x'; END IF; END $$"
-            )
-        )
-        conn.execute(text("GRANT ALL ON ALL TABLES IN SCHEMA public TO docqa_app_test"))
-    _created_tenants.clear()
-    yield eng
-    with eng.begin() as conn:  # superuser bypasses RLS: remove everything this test inserted
-        for tid in _created_tenants:
-            conn.execute(text("DELETE FROM documents WHERE tenant_id = :t"), {"t": tid})
-            conn.execute(text("DELETE FROM tenants WHERE id = :t"), {"t": tid})
-    eng.dispose()
-
-
-def _make_tenants(engine: Engine) -> tuple[uuid.UUID, uuid.UUID]:
-    a, b = uuid.uuid4(), uuid.uuid4()
-    with engine.begin() as conn:  # tenants has no RLS
-        for tid, slug in ((a, f"tenant-a-{a}"), (b, f"tenant-b-{b}")):
-            conn.execute(
-                text("INSERT INTO tenants (id, slug, name) VALUES (:id, :s, :s)"),
-                {"id": tid, "s": slug},
-            )
-            _created_tenants.append(tid)
-    return a, b
-
-
-def _insert_doc(engine: Engine, tenant: uuid.UUID, title: str) -> None:
-    with engine.begin() as conn:
-        conn.execute(text("SET LOCAL ROLE docqa_app_test"))
-        conn.execute(text("SELECT set_config('app.tenant_id', :t, true)"), {"t": str(tenant)})
-        conn.execute(
-            text(
-                "INSERT INTO documents (id, tenant_id, title, content_hash) "
-                "VALUES (:id, :t, :title, :h)"
+                "INSERT INTO document_versions "
+                "(tenant_id, document_id, version, size_bytes, original_filename) "
+                "VALUES (:t, :d, 1, 1, 'x.pdf')"
             ),
-            {"id": uuid.uuid4(), "t": tenant, "title": title, "h": title},
+            {"t": b, "d": doc_a},
         )
 
 
-def _visible_titles(engine: Engine, tenant: uuid.UUID | None) -> list[str]:
-    with engine.begin() as conn:
-        conn.execute(text("SET LOCAL ROLE docqa_app_test"))
-        if tenant is not None:
-            conn.execute(text("SELECT set_config('app.tenant_id', :t, true)"), {"t": str(tenant)})
-        return [r[0] for r in conn.execute(text("SELECT title FROM documents"))]
-
-
-def test_cross_tenant_isolation(engine: Engine) -> None:
-    a, b = _make_tenants(engine)
-    _insert_doc(engine, a, "doc-a")
-    _insert_doc(engine, b, "doc-b")
-
-    assert _visible_titles(engine, a) == ["doc-a"]
-    assert _visible_titles(engine, b) == ["doc-b"]
-    assert _visible_titles(engine, None) == []
-
-
-def test_cannot_write_other_tenant_row(engine: Engine) -> None:
-    a, b = _make_tenants(engine)
-    with engine.connect() as conn:  # autobegin; closed with rollback (txn is aborted)
-        conn.execute(text("SET LOCAL ROLE docqa_app_test"))
-        conn.execute(text("SELECT set_config('app.tenant_id', :t, true)"), {"t": str(a)})
-        with pytest.raises(Exception, match="row-level security"):
-            conn.execute(
-                text(
-                    "INSERT INTO documents (id, tenant_id, title, content_hash) "
-                    "VALUES (:id, :t, 'x', 'x')"
-                ),
-                {"id": uuid.uuid4(), "t": b},
+def test_every_tenant_table_has_forced_rls_and_a_policy(engine: Engine) -> None:
+    with engine.connect() as conn:
+        rows = conn.execute(
+            text(
+                "SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity, "
+                "  (SELECT count(*) FROM pg_policy p WHERE p.polrelid = c.oid) "
+                "FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                "WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p') "
+                "  AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid "
+                "              AND a.attname = 'tenant_id' AND NOT a.attisdropped)"
             )
+        ).all()
+    unprotected = {"tenant_settings"}  # global by design (ADR 0006): keyed by tenant_id, no RLS
+    found = {name: (rls, forced, policies) for name, rls, forced, policies in rows}
+    assert set(TENANT_SCOPED_TABLES) <= set(found)
+    problems = [
+        name
+        for name, (rls, forced, policies) in found.items()
+        if name not in unprotected and not (rls and forced and policies > 0)
+    ]
+    assert not problems, f"tables without forced RLS and a policy: {problems}"
+
+
+def test_audit_log_is_append_only(engine: Engine, tenants: TenantFactory) -> None:
+    a = tenants.make()
+    with engine.connect() as conn:  # rolled back: audit rows can't be deleted afterwards
+        conn.execute(
+            text(
+                "INSERT INTO audit_log (tenant_id, actor_type, action, resource_type) "
+                "VALUES (:t, 'system', 'test.event', 'test')"
+            ),
+            {"t": a},
+        )
+        with pytest.raises(DBAPIError, match="append-only"):
+            conn.execute(text("UPDATE audit_log SET action = 'x' WHERE tenant_id = :t"), {"t": a})
+        conn.rollback()
+
+
+def test_audit_log_rows_are_scoped_to_their_tenant(engine: Engine, tenants: TenantFactory) -> None:
+    a, b = tenants.make(), tenants.make()
+    with as_role(engine, "docqa_backend", a, commit=False) as conn:
+        conn.execute(
+            text(
+                "INSERT INTO audit_log (tenant_id, actor_type, action, resource_type) "
+                "VALUES (:t, 'user', 'test.event', 'test')"
+            ),
+            {"t": a},
+        )
+        conn.execute(text("SELECT set_config('app.tenant_id', :t, true)"), {"t": str(b)})
+        visible = conn.execute(
+            text("SELECT count(*) FROM audit_log WHERE action = 'test.event'")
+        ).scalar_one()
+    assert visible == 0

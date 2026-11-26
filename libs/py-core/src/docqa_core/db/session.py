@@ -21,8 +21,27 @@ def make_sessionmaker(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(engine, expire_on_commit=False)
 
 
-async def set_tenant_context(session: AsyncSession, tenant_id: uuid.UUID) -> None:
-    """Set ``app.tenant_id`` for the current transaction (read by RLS policies)."""
+async def set_tenant_context(
+    session: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    user_id: uuid.UUID | None = None,
+    request_id: str | None = None,
+) -> None:
+    """Set the RLS context for the current transaction.
+
+    ``app.tenant_id`` is read by every tenant policy; ``app.user_id`` and ``app.request_id``
+    feed defaults and the audit log. The settings end with the transaction.
+    """
     await session.execute(
-        text("SELECT set_config('app.tenant_id', :tid, true)"), {"tid": str(tenant_id)}
+        text(
+            "SELECT set_config('app.tenant_id', :tid, true), "
+            "set_config('app.user_id', :uid, true), "
+            "set_config('app.request_id', :rid, true)"
+        ),
+        {
+            "tid": str(tenant_id),
+            "uid": str(user_id) if user_id else "",
+            "rid": request_id or "",
+        },
     )

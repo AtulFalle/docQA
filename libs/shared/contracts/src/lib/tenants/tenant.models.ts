@@ -1,3 +1,3 @@
-/** Allowed tenant states. Mirrors the Python StrEnum in docqa_core and the DB column values. */
-export const TENANT_STATUSES = ['active', 'suspended'] as const;
+/** Tenant lifecycle. Mirrors TenantStatus in docqa_core and the tenants.status CHECK. */
+export const TENANT_STATUSES = ['active', 'suspended', 'deleting'] as const;
 export type TenantStatus = (typeof TENANT_STATUSES)[number];
