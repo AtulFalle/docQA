@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help dev backend db-migrate db-migrate-dev js-check e2e format check lint-imports deps-check audit setup up down logs ps up-app ai-api worker lint fmt typecheck test test-unit eval-validate docker-build contracts contracts-check clean
+.PHONY: help dev backend db-migrate db-migrate-dev js-check e2e format check lint-imports deps-check audit setup up down logs ps up-app ai-api worker lint fmt typecheck test test-unit eval-validate docker-build contracts contracts-check verify-observability clean
 
 COMPOSE = docker compose -f infra/docker/docker-compose.yml
 
@@ -27,6 +27,9 @@ ps: ## Show infra container status
 
 up-app: ## Start infra + all app containers (web :8088, backend :3000, ai-api :8001, worker)
 	$(COMPOSE) --profile app up -d --build
+
+verify-observability: ## Check one request is traceable in Loki + Tempo (needs `make up-app`)
+	uv run python -I infra/scripts/verify_observability.py
 
 ai-api: ## Run the internal AI service locally with reload on :8001
 	uv run uvicorn docqa_ai_api.main:app --reload --host 0.0.0.0 --port 8001

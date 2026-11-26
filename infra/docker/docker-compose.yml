@@ -165,6 +165,7 @@ services:
     image: docqa-backend:local
     environment:
       NODE_ENV: production
+      APP_ENV: local
       PORT: '3000'
       DATABASE_URL: postgresql://docqa:docqa@postgres:5432/docqa
       AI_SERVICE_URL: http://ai-api:8000
@@ -202,6 +203,7 @@ services:
         required: false
     environment:
       <<: *app-env
+      DOCQA_SERVICE_NAME: docqa-ai-api
     ports:
       - '8001:8000' # internal AI service; exposed on the host for local debugging only
     depends_on:

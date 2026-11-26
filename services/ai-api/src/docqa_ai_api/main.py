@@ -20,7 +20,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        configure_logging(settings.log_level, json=settings.log_json)
+        configure_logging(
+            settings.log_level,
+            json=settings.log_json,
+            service=settings.service_name,
+            environment=settings.env,
+        )
         setup_telemetry(
             settings.service_name,
             enabled=settings.otel_enabled,

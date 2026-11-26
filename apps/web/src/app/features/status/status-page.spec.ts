@@ -53,6 +53,16 @@ describe('StatusPage', () => {
         expect(el.querySelectorAll('.status__row .status__badge--down').length).toBe(1);
     });
 
+    it('shows the request id as a support reference on error', async () => {
+        const { fixture, el, http } = setup();
+        http.expectOne(URL).flush(
+            { statusCode: 500, error: 'Internal Server Error', message: 'x', requestId: 'req-9' },
+            { status: 500, statusText: 'Server Error' },
+        );
+        await fixture.whenStable();
+        expect(el.querySelector('[role="alert"]')?.textContent).toContain('Reference: req-9');
+    });
+
     it('renders the error state and can refresh', async () => {
         const { fixture, el, http } = setup();
         http.expectOne(URL).flush('x', { status: 500, statusText: 'Server Error' });

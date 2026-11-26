@@ -9,6 +9,8 @@ export const envSchema = z.object({
         .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
         .default('info'),
     SERVICE_NAME: z.string().min(1).default('docqa-backend'),
+    /** Deployment environment, same values as DOCQA_ENV in the Python services. */
+    APP_ENV: z.enum(['local', 'dev', 'staging', 'prod']).default('local'),
     APP_VERSION: z.string().min(1).default('0.1.0'),
     OTEL_ENABLED: z.stringbool().default(false),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.url().optional(),
