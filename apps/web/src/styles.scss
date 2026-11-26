@@ -1,27 +1,8 @@
-:root {
-    --color-bg: #f4f6fa;
-    --color-surface: #fff;
-    --color-text: #1a1f2b;
-    --color-muted: #4b5565;
-    --color-border: #d5dae3;
-    --color-primary: #1d4ed8;
-    --color-on-primary: #fff;
-    --color-ok-bg: #dcfce7;
-    --color-ok-text: #166534;
-    --color-down-bg: #fee2e2;
-    --color-down-text: #991b1b;
-    --color-warn-bg: #fef9c3;
-    --color-warn-text: #854d0e;
-    --color-info-bg: #dbeafe;
-    --color-info-text: #1e3a8a;
-    --space-1: 0.25rem;
-    --space-2: 0.5rem;
-    --space-3: 0.75rem;
-    --space-4: 1rem;
-    --space-5: 2rem;
-    --radius: 0.5rem;
-    --font: system-ui, -apple-system, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
-}
+// Design tokens, typography and icons come from ng-elemental (libs/ui). Use `var(--el-*)`
+// tokens in component SCSS; brand values live only in libs/ui/theme/tokens.scss.
+@use '../../../libs/ui/theme/tokens';
+@use '../../../libs/ui/theme/typography';
+@use '../../../libs/ui/icon/fontawesome';
 
 *,
 *::before,
@@ -31,48 +12,19 @@
 
 body {
     margin: 0;
-    font-family: var(--font);
+    font-family: var(--el-font-sans);
     line-height: 1.5;
-    color: var(--color-text);
-    background: var(--color-bg);
-}
-
-h1 {
-    margin-top: 0;
-    font-size: 1.75rem;
+    color: var(--el-color-on-surface);
+    background: var(--el-color-surface-container-low);
 }
 
 a {
-    color: var(--color-primary);
+    color: var(--el-color-primary);
 }
 
 :focus-visible {
-    outline: 3px solid var(--color-primary);
+    outline: 3px solid var(--el-color-focus);
     outline-offset: 2px;
-}
-
-button {
-    font: inherit;
-    padding: var(--space-2) var(--space-4);
-    border: 0;
-    border-radius: var(--radius);
-    background: var(--color-primary);
-    color: var(--color-on-primary);
-    cursor: pointer;
-}
-
-button:disabled {
-    background: #6b7280;
-    cursor: not-allowed;
-}
-
-textarea {
-    font: inherit;
-    padding: var(--space-3);
-    border: 1px solid #6b7280;
-    border-radius: var(--radius);
-    background: var(--color-surface);
-    color: var(--color-text);
 }
 
 @media (prefers-reduced-motion: reduce) {

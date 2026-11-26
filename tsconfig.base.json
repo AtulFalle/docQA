@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "strict": true,
     "paths": {
-      "@docqa/contracts": ["./libs/shared/contracts/src/index.ts"]
+      "@docqa/contracts": ["./libs/shared/contracts/src/index.ts"],
+      "@docqa/ui/*": ["./libs/ui/*"]
     },
     "noImplicitOverride": true,
     "noFallthroughCasesInSwitch": true,

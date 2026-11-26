@@ -12,7 +12,7 @@ REQUEST_ID_HEADER = "X-Request-ID"
 
 
 class RequestContextMiddleware:
-    """Pure ASGI middleware binding request metadata to structlog contextvars."""
+    """Pure ASGI middleware binding request metadata to the log context."""
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app

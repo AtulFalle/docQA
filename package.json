@@ -84,6 +84,7 @@
     "@angular/forms": "~22.2.0",
     "@angular/platform-browser": "~22.2.0",
     "@angular/router": "~22.2.0",
+    "@fortawesome/fontawesome-free": "^7.3.1",
     "@nestjs/common": "^12.6.0",
     "@nestjs/config": "^12.1.1",
     "@nestjs/core": "^12.6.0",

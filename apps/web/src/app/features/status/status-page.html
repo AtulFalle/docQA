@@ -1,62 +1,75 @@
-<section class="status">
-    <h1 class="status__title">System status</h1>
-    <div class="status__toolbar">
-        <div class="status__overall" aria-live="polite">
-            @switch (state().kind) {
-                @case ('loading') {
-                    <span class="status__badge">Checking…</span>
-                }
-                @case ('error') {
-                    <span class="status__badge status__badge--down"
-                        >Unable to reach the backend</span
-                    >
-                }
-                @default {
-                    @if (overall(); as o) {
-                        <span
-                            class="status__badge"
-                            [class.status__badge--ok]="o.ok"
-                            [class.status__badge--down]="!o.ok"
-                            >{{ o.label }}</span
+<el-stack gap="6">
+    <el-stack direction="row" justify="between" align="center" wrap>
+        <h1 class="el-text-h2 status__title">System status</h1>
+        <el-button
+            variant="secondary"
+            iconStart="rotate-right"
+            [disabled]="state().kind === 'loading'"
+            (click)="refresh()"
+            >Refresh</el-button
+        >
+    </el-stack>
+
+    <div aria-live="polite">
+        @switch (state().kind) {
+            @case ('loading') {
+                <el-stack gap="2">
+                    <span class="el-text-muted">Checking…</span>
+                    <el-progress indeterminate />
+                </el-stack>
+            }
+            @case ('error') {
+                <el-alert color="error" title="Unable to reach the backend">
+                    <span role="alert">
+                        The status check failed. Check your connection and try again.
+                    </span>
+                    @if (errorReference(); as ref) {
+                        <span class="status__reference"
+                            >Reference: <code>{{ ref }}</code></span
                         >
                     }
+                </el-alert>
+            }
+            @default {
+                @if (overall(); as o) {
+                    <el-alert [color]="o.ok ? 'success' : 'error'" [title]="o.label" />
                 }
             }
-        </div>
-        <button type="button" (click)="refresh()" [disabled]="state().kind === 'loading'">
-            Refresh
-        </button>
+        }
     </div>
 
     @if (state().kind === 'loaded') {
-        <ul class="status__list" aria-label="Dependencies">
-            @for (row of rows(); track row.name) {
-                <li class="status__row">
-                    <span class="status__name">{{ row.name }}</span>
-                    <span
-                        class="status__badge"
-                        aria-live="polite"
-                        [class.status__badge--ok]="row.up"
-                        [class.status__badge--down]="!row.up"
-                        >{{ row.up ? 'Up' : 'Down' }}</span
-                    >
-                    @if (row.message) {
-                        <span class="status__message">{{ row.message }}</span>
+        <el-card>
+            <div elCardHeader class="el-text-h4">Dependencies</div>
+            <div elCardContent>
+                <el-list ariaLabel="Dependencies" appearance="plain">
+                    @for (row of rows(); track row.name) {
+                        <el-list-item>
+                            <el-icon
+                                elListLeading
+                                [class.status__state--up]="row.up"
+                                [class.status__state--down]="!row.up"
+                                [name]="row.up ? 'circle-check' : 'circle-xmark'"
+                            />
+                            <span elListTitle>{{ row.name }}</span>
+                            @if (row.message) {
+                                <span elListDescription>{{ row.message }}</span>
+                            }
+                            <span
+                                elListTrailing
+                                class="status__state"
+                                [class.status__state--up]="row.up"
+                                [class.status__state--down]="!row.up"
+                                >{{ row.up ? 'Up' : 'Down' }}</span
+                            >
+                        </el-list-item>
+                    } @empty {
+                        <el-list-item>
+                            <span elListTitle>No dependencies reported.</span>
+                        </el-list-item>
                     }
-                </li>
-            } @empty {
-                <li class="status__row">No dependencies reported.</li>
-            }
-        </ul>
+                </el-list>
+            </div>
+        </el-card>
     }
-    @if (state().kind === 'error') {
-        <p role="alert" class="status__error">
-            The status check failed. Check your connection and try again.
-            @if (errorReference(); as ref) {
-                <span class="status__reference"
-                    >Reference: <code>{{ ref }}</code></span
-                >
-            }
-        </p>
-    }
-</section>
+</el-stack>

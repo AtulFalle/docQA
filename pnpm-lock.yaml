@@ -29,6 +29,9 @@ importers:
       '@angular/router':
         specifier: ~22.2.0
         version: 22.2.7(@angular/common@22.2.7(@angular/core@22.2.7(@angular/compiler@22.2.7)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.7(@angular/compiler@22.2.7)(rxjs@7.8.2))(@angular/platform-browser@22.2.7(@angular/common@22.2.7(@angular/core@22.2.7(@angular/compiler@22.2.7)(rxjs@7.8.2))(rxjs@7.8.2))(@angular/core@22.2.7(@angular/compiler@22.2.7)(rxjs@7.8.2)))(rxjs@7.8.2)
+      '@fortawesome/fontawesome-free':
+        specifier: ^7.3.1
+        version: 7.3.1
       '@nestjs/common':
         specifier: ^12.6.0
         version: 12.6.0(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -1514,6 +1517,10 @@ packages:
     peerDependenciesMeta:
       '@noble/hashes':
         optional: true
+
+  '@fortawesome/fontawesome-free@7.3.1':
+    resolution: {integrity: sha512-wmglKKPDIkgV3aWlZzWECCPoGIkYCulzBwxG9+w7rc5BGapZ6cPMpoPOT8k36J0Ni7PPX6c/rsoMWfS4d1MUMg==}
+    engines: {node: '>=6'}
 
   '@grpc/grpc-js@1.14.7':
     resolution: {integrity: sha512-W4W/fcBMGRVtG6dW2c7cw2mnpS3hvbBd+oQXjh2iYFTZDk1JJmcNqkM5KSaPubQpamlUUurrlb7G1s9NJeERmQ==}
@@ -10595,6 +10602,8 @@ snapshots:
   '@exodus/bytes@1.16.0(@noble/hashes@2.4.0)':
     optionalDependencies:
       '@noble/hashes': 2.4.0
+
+  '@fortawesome/fontawesome-free@7.3.1': {}
 
   '@grpc/grpc-js@1.14.7':
     dependencies:

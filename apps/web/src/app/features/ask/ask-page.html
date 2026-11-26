@@ -1,23 +1,28 @@
-<section class="ask">
-    <h1 class="ask__title">Ask</h1>
-    <p class="ask__banner" role="status">Answering is coming in M1 (query API)</p>
-    <form class="ask__form" [formGroup]="form">
-        <label class="ask__label" for="question">Your question</label>
-        <textarea
-            id="question"
-            class="ask__input"
-            rows="6"
-            formControlName="question"
-            [attr.maxlength]="max"
-            aria-describedby="counter"
-            [attr.aria-invalid]="form.controls.question.invalid && form.controls.question.touched"
-        ></textarea>
-        <div class="ask__meta">
-            <span id="counter">{{ length() }} / {{ max }}</span>
-            @if (form.controls.question.touched && form.controls.question.hasError('required')) {
-                <span class="ask__error" role="alert">Please enter a question.</span>
-            }
-        </div>
-        <button type="submit" disabled>Ask</button>
+<el-stack gap="6">
+    <h1 class="el-text-h2 ask__title">Ask</h1>
+    <el-alert color="info" title="Answering is coming in M1 (query API)" />
+
+    <form (submit)="$event.preventDefault()">
+        <el-stack gap="2">
+            <el-label htmlFor="question" required>Your question</el-label>
+            <el-input
+                inputId="question"
+                name="question"
+                placeholder="What does the policy say about…"
+                [(value)]="question"
+                [error]="error() !== null"
+                ariaDescribedby="counter question-error"
+                (focusout)="touched.set(true)"
+            />
+            <el-stack direction="row" justify="between" align="center" wrap>
+                <span id="counter" class="el-text-muted">{{ length() }} / {{ max }}</span>
+                @if (error(); as message) {
+                    <el-form-error id="question-error" role="alert">{{ message }}</el-form-error>
+                }
+            </el-stack>
+            <div>
+                <el-button type="submit" iconStart="paper-plane" disabled>Ask</el-button>
+            </div>
+        </el-stack>
     </form>
-</section>
+</el-stack>
