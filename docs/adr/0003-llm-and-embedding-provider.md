@@ -1,37 +1,54 @@
 # 0003. LLM and embedding provider
 
-- Status: Proposed. Decision needed before M1 (answer generation) and M2 (embedding and indexing).
+- Status: Accepted
+- Date: 2026-11-28
 
 ## Context
 
-Two model roles are needed. A **generation** model writes grounded answers with citations from retrieved chunks. An **embedding** model turns chunks and queries into vectors for Qdrant. The choice affects answer quality, cost per query, latency, data handling (see ADR 0004), and how easily the provider can be replaced. The `ANTHROPIC_API_KEY` placeholder in `.env.example` is reserved for the generation role and is not used until M1.
+Two model roles are needed. A **generation** model writes grounded answers with citations from retrieved chunks. An **embedding** model turns chunks and queries into vectors for Qdrant. A **reranker** reorders the retrieved candidates. The choice affects answer quality, cost per query, latency, data handling (see ADR 0004), and how easily the provider can be replaced.
 
-## Options
+The planning discussion on 2026-11-28 set the data-handling rule: **no document content may leave our infrastructure**. Every model that sees document text or questions about it falls under that rule. Expected scale is 100k–1M documents in the first 12 months (see Discussion #156).
+
+## Options considered
 
 For generation:
 
-1. **Anthropic Claude API** through the official SDK. Hosted, strong at long-context grounded answers, and the project already has an API key placeholder for it.
-2. **Another hosted LLM API** (for example OpenAI or a cloud-hosted model service). Comparable choice; would need the same evaluation on the golden set.
-3. **Self-hosted open-weights model** on our own GPUs. Best residency control; higher operating cost and a quality gap that must be measured.
+1. **Hosted LLM API** (a commercial model API or a cloud-hosted model service). Strong at long-context grounded answers with no GPUs to run. Rejected: document excerpts would leave our infrastructure.
+2. **Self-hosted open-weights model** on our own GPUs. Best data control. Operating cost and the quality gap must be measured on the golden set.
 
-For embeddings:
+For embeddings and reranking:
 
-1. **Hosted embedding API** (for example Voyage AI, which Anthropic recommends for embeddings, or an OpenAI embedding model). Simple to run; document text leaves our infrastructure.
-2. **Self-hosted open embedding model** behind a text-embeddings service. No text leaves our infrastructure; we run and upgrade the model ourselves.
+1. **Hosted embedding or rerank API.** Rejected: document text leaves our infrastructure.
+2. **Self-hosted open models** behind an embeddings service. No text leaves our infrastructure; we run and upgrade the models ourselves.
 
-## Recommended default
+## Decision
 
-- Generation: Anthropic Claude API, behind a small provider interface in `docqa_core` so that a second provider can be added without touching the pipeline.
-- Embeddings: decide after the M0 golden set exists. Measure recall@k for a hosted and a self-hosted model on the same corpus. Until then, the interface must record the embedding model name and version on every chunk (`chunks.embedding_model`, `chunks.index_version`), so that re-embedding is possible later.
+All models are **self-hosted** (generation option 2, embeddings option 2).
 
-## Open questions
+- **Serving.** vLLM serves the generation model behind an OpenAI-compatible endpoint, reached through the `openai_compat` provider adapter (Discussion #133). Ollama is allowed for local development on a laptop. Embedding and reranker models are served on our own infrastructure too.
+- **Interfaces.** Every model sits behind the `LLMClient`, `Embedder` and `Reranker` interfaces (`docs/engineering/rag-and-llm.md`), so a model or size change is a configuration change.
+- **Model and size are chosen by eval, not by leaderboard.** In M1 the golden set runs against two or three model sizes. We choose the smallest size that meets the M1 quality thresholds (faithfulness, citation precision and abstention on unanswerable questions). Its hardware becomes the GPU budget request. Rough starting tiers, to be checked against our own data:
 
-- Is sending document excerpts to a third-party API allowed for every tenant? (Links to ADR 0004.)
-- What is the monthly budget for generation and embedding, and at what query volume?
-- What answer-quality threshold (from the golden set) must the chosen model meet before M1 exits?
-- Are there contractual requirements on retention or training use with the provider?
-- Is a self-hosted model in scope for the first production release, or only as a fallback?
+  | Tier | Hardware | Fits |
+  |---|---|---|
+  | Dev | 1× 24 GB GPU | ~8B LLM + small embedding and reranker models |
+  | Prod small | 1× 80 GB (or 2× 48 GB) + 1× 24 GB | quantized ~30B LLM; embedding and reranking on the smaller GPU |
+  | Prod comfortable | 2–4× 80 GB | 70B-class LLM, or ~30B with more concurrency |
+
+- **The LLM-as-judge** used for faithfulness scoring in eval is self-hosted as well, and pinned by name and version.
+- Every embedding still records its model and index version (`search_indexes`, ADR 0006), so changing models means a reindex job rather than a schema change.
 
 ## Consequences
 
-The pipeline depends on an interface, not a vendor. Every embedding is tied to a model name and an index version, so changing models means a reindex job rather than a schema change. Eval runs must be repeated after any provider change, and the results recorded in the milestone file.
+- GPUs become the main operating cost and capacity limit. Deployments need GPU nodes (see ADR 0002).
+- Open models usually cite and stay faithful less reliably than the strongest hosted models. Citation validation and abstention (PR-704) therefore matter more and should come early.
+- Cost per token is derived from GPU cost and measured throughput, not from provider list prices. `model_prices` and `usage_events.cost_micros` (ADR 0006) hold these derived values.
+- "Reserved provider capacity" for question embeddings (ADR 0006 §8) means reserved GPU capacity on the embedding server.
+- The router's fallback and downgrade features (PR-504, PR-507) can only choose between self-hosted models.
+- The hosted-LLM API key placeholder is removed from `.env.example`.
+- Eval runs must be repeated after any model change, and the results recorded in the milestone file.
+
+## Open questions (do not block acceptance)
+
+- Which candidate models go into the M1 size comparison?
+- What is the GPU budget ceiling? It is answered by the M1 eval results.
