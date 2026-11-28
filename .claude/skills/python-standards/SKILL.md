@@ -36,7 +36,7 @@ async def ingest_document(doc_id: UUID, *, tenant_id: UUID, force: bool = False)
 
 ## Layout and boundaries
 
-- `libs/py-core` (`docqa_core`): config, logging, telemetry, db models and the `StrEnum`s shared with TS (keep them identical to `@docqa/contracts`).
+- `libs/py-core` (`docqa_core`): config, logging, telemetry, db models, and the `StrEnum`s shared with TS in `docqa_core.value_sets` (keep them identical to `@docqa/contracts`).
 - `services/ai-api` (`docqa_ai_api`): FastAPI app. `routes/` stays thin; add `schemas/` (pydantic) and `services/` (logic) as the first real endpoints land.
 - `services/ingestion-worker` (`docqa_workers`): Temporal `workflows/` (deterministic: no I/O, clocks or randomness) and `activities/` (all I/O, idempotent).
 - Services and eval never import each other **[Lint: import-linter]**. Declare every import as a dependency in that package's `pyproject.toml` **[deptry]**.
