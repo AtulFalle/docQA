@@ -1,5 +1,5 @@
 # Build context: repository root.  docker build -f apps/backend/Dockerfile .
-FROM node:24-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /repo
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -17,7 +17,7 @@ COPY apps/backend/prisma.config.ts apps/backend/prisma.config.ts
 CMD ["pnpm","prisma","migrate","deploy","--config","apps/backend/prisma.config.ts"]
 
 # Must stay last: the default target of a plain `docker build`.
-FROM node:24-alpine AS runtime
+FROM node:26-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
 RUN corepack enable
