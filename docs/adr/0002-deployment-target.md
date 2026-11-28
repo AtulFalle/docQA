@@ -23,7 +23,7 @@ The API, ingestion worker and migration job are container images (see `.github/w
 *Updated 2026-11-28.* ADR 0003 now requires self-hosted models, and the original condition for revisiting Kubernetes ("if self-hosted models … are needed") has been met. The recommendation is therefore **option 2, Kubernetes, kept portable**:
 
 - Use only self-hostable components: Postgres, Qdrant, Redis, Temporal, RustFS, Langfuse, and vLLM for models. Use no cloud-only managed services, so the same charts can run in our own cloud account, on our own servers, or inside a customer's infrastructure.
-- GPU node pools for generation, embedding and reranking, sized from the M1 eval results (ADR 0003).
+- GPU node pools for generation, embedding and reranking, sized from the model-size comparison in M4 and M6 (ADR 0003).
 - kind for the full local stack, with Argo CD GitOps as proposed in Discussion #135.
 - Managed Postgres or object storage is still allowed when the chosen target offers it, as long as it stays S3- and Postgres-compatible.
 

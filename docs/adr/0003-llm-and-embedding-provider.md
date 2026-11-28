@@ -27,7 +27,7 @@ All models are **self-hosted** (generation option 2, embeddings option 2).
 
 - **Serving.** vLLM serves the generation model behind an OpenAI-compatible endpoint, reached through the `openai_compat` provider adapter (Discussion #133). Ollama is allowed for local development on a laptop. Embedding and reranker models are served on our own infrastructure too.
 - **Interfaces.** Every model sits behind the `LLMClient`, `Embedder` and `Reranker` interfaces (`docs/engineering/rag-and-llm.md`), so a model or size change is a configuration change.
-- **Model and size are chosen by eval, not by leaderboard.** In M1 the golden set runs against two or three model sizes. We choose the smallest size that meets the M1 quality thresholds (faithfulness, citation precision and abstention on unanswerable questions). Its hardware becomes the GPU budget request. Rough starting tiers, to be checked against our own data:
+- **Model and size are chosen by eval, not by leaderboard.** Once vLLM serving (M4) and the answer metrics and eval runner (M6, PR-603 and PR-604) exist, the golden set runs against two or three model sizes. We choose the smallest size that meets the quality thresholds (faithfulness, citation precision and abstention on unanswerable questions). Its hardware becomes the GPU budget request. Rough starting tiers, to be checked against our own data:
 
   | Tier | Hardware | Fits |
   |---|---|---|
@@ -50,5 +50,5 @@ All models are **self-hosted** (generation option 2, embeddings option 2).
 
 ## Open questions (do not block acceptance)
 
-- Which candidate models go into the M1 size comparison?
-- What is the GPU budget ceiling? It is answered by the M1 eval results.
+- Which candidate models go into the size comparison (M4 and M6)?
+- What is the GPU budget ceiling? It is answered by the size comparison. Until then, development uses Ollama on CPU or a single 24 GB GPU.
