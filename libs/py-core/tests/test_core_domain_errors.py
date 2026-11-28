@@ -64,7 +64,7 @@ def test_rate_limited_error_keeps_retry_after():
 
 def test_rate_limited_error_rejects_a_negative_retry_after():
     with pytest.raises(InvalidInputError, match="retry_after_s"):
-        RateLimitedError("slow down", retry_after_s=-1)
+        raise RateLimitedError("slow down", retry_after_s=-1)
 
 
 def test_domain_package_imports_no_framework():

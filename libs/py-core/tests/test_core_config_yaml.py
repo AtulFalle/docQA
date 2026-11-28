@@ -40,7 +40,9 @@ def test_yaml_config_expands_inside_lists(tmp_path):
 
 
 def test_empty_yaml_file_is_an_empty_config(tmp_path):
-    assert load_yaml_config(write(tmp_path, ""), {}) == {}
+    path = write(tmp_path, "")
+
+    assert load_yaml_config(path, {}) == {}
 
 
 def test_missing_yaml_file_is_a_config_error(tmp_path):
@@ -56,8 +58,10 @@ def test_invalid_yaml_reports_the_line(tmp_path):
 
 
 def test_yaml_that_is_not_a_mapping_is_rejected(tmp_path):
+    path = write(tmp_path, "- just\n- a list\n")
+
     with pytest.raises(ConfigError, match="mapping at the top level"):
-        load_yaml_config(write(tmp_path, "- just\n- a list\n"), {})
+        load_yaml_config(path, {})
 
 
 def test_unset_variable_without_default_names_the_variable_and_file(tmp_path):
@@ -91,6 +95,12 @@ def test_empty_default_is_allowed():
 
 def test_double_dollar_keeps_a_literal_reference():
     assert interpolate("$${NAME} and ${NAME}", {"NAME": "x"}, source="test") == "${NAME} and x"
+
+
+def test_reference_inside_a_quoted_flow_mapping_is_expanded(tmp_path):
+    path = write(tmp_path, 'params: {latency_ms: "${LATENCY:-5}"}\n')
+
+    assert load_yaml_config(path, {}) == {"params": {"latency_ms": "5"}}
 
 
 def test_non_string_values_are_left_alone():

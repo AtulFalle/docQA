@@ -12,7 +12,8 @@ from docqa_core.registry import ProviderRegistrationError, Registry, import_plug
 
 
 class Greeter(Protocol):
-    def greet(self) -> str: ...
+    def greet(self) -> str:
+        """Return a greeting."""
 
 
 def make_registry() -> Registry[Greeter]:
@@ -127,10 +128,12 @@ def test_registries_are_independent_per_interface():
     embedders: Registry[object] = Registry("embedder")
 
     @llms.register("local")
-    class LocalLLM: ...
+    class LocalLLM:
+        """A local LLM."""
 
     @embedders.register("local")
-    class LocalEmbedder: ...
+    class LocalEmbedder:
+        """A local embedder."""
 
     assert llms.get("local") is LocalLLM
     assert embedders.get("local") is LocalEmbedder

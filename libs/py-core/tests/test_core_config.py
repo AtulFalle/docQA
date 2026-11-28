@@ -64,7 +64,7 @@ def test_yaml_file_sets_providers_and_plugins(
     path = write_config(
         tmp_path,
         "plugins: [my_company.providers]\n"
-        "providers:\n  llm:\n    name: fake\n    params: {latency_ms: ${LATENCY:-5}}\n",
+        'providers:\n  llm:\n    name: fake\n    params: {latency_ms: "${LATENCY:-5}"}\n',
     )
     monkeypatch.setenv(CONFIG_FILE_ENV, str(path))
 

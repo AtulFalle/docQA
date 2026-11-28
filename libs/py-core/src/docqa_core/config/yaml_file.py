@@ -8,6 +8,9 @@ Interpolation, in string values only:
 - ``${NAME}``: the value of ``NAME``; a missing variable is an error.
 - ``${NAME:-default}``: the value of ``NAME``, or ``default`` when it is unset or empty.
 - ``$${NAME}``: a literal ``${NAME}``.
+
+Inside YAML flow collections (``{...}``, ``[...]``) quote values that contain references,
+because ``{`` would otherwise start a nested mapping: ``{url: "${URL}"}``.
 """
 
 import re

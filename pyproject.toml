@@ -176,7 +176,7 @@ omit = ["*/__main__.py"]
 
 [tool.coverage.report]
 # Ratchet: raise this whenever coverage goes up; never lower it without an ADR.
-fail_under = 83
+fail_under = 91
 show_missing = true
 skip_covered = true
 exclude_also = [
