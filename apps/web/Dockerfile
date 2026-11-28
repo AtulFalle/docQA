@@ -7,7 +7,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 RUN pnpm nx build web --configuration=production
 
-FROM nginxinc/nginx-unprivileged:1.29-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS runtime
 # Pull in Alpine security fixes newer than the base image. CI rebuilds this stage without the
 # layer cache (no-cache-filters: runtime), so every build gets the current fixes.
 USER root
