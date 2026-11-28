@@ -16,7 +16,7 @@ The browser talks only to the Angular UI and the NestJS backend. The backend is 
 | `services/ingestion-worker` | Temporal workers (Python) | Ingest: validate, extract, chunk, embed, index |
 | `eval/` | Python | Golden dataset, metrics, CLI |
 | `libs/shared/contracts` | TypeScript (`@docqa/contracts`) | Request and response types shared by web and backend |
-| `libs/py-core` | Python (`docqa-core`) | Settings (env + YAML), provider registry, domain types and errors, logging, telemetry, SQLAlchemy mirror of the schema |
+| `libs/py-core` | Python (`docqa-core`) | Settings (env + YAML), provider registry, provider interfaces with fakes, domain types and errors, logging, telemetry, SQLAlchemy mirror of the schema |
 
 ### Request path
 
