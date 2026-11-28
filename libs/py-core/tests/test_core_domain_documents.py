@@ -5,7 +5,14 @@ from uuid import uuid4
 
 import pytest
 
-from docqa_core.domain import Chunk, Document, InvalidInputError, ScoredChunk
+from docqa_core.domain import (
+    Chunk,
+    Document,
+    InvalidInputError,
+    ParsedDocument,
+    ParsedPage,
+    ScoredChunk,
+)
 
 
 def make_chunk(**overrides: object) -> Chunk:
@@ -83,3 +90,25 @@ def test_scored_chunk_keeps_the_score():
 def test_scored_chunk_rejects_a_score_that_is_not_finite(score):
     with pytest.raises(InvalidInputError, match="finite"):
         ScoredChunk(make_chunk(), score)
+
+
+def test_parsed_document_keeps_pages_in_order():
+    document = Document(id=uuid4(), tenant_id=uuid4(), version_id=uuid4(), title="Policy")
+
+    parsed = ParsedDocument(document, (ParsedPage(1, "one"), ParsedPage(2, "two")))
+
+    assert [page.number for page in parsed.pages] == [1, 2]
+
+
+def test_parsed_page_numbers_start_at_one():
+    with pytest.raises(InvalidInputError, match="start at 1"):
+        ParsedPage(0, "text")
+
+
+@pytest.mark.parametrize("numbers", [(2,), (1, 3), (2, 1)])
+def test_parsed_document_rejects_pages_out_of_order(numbers):
+    document = Document(id=uuid4(), tenant_id=uuid4(), version_id=uuid4(), title="Policy")
+    pages = tuple(ParsedPage(number, "text") for number in numbers)
+
+    with pytest.raises(InvalidInputError, match="pages must run"):
+        ParsedDocument(document, pages)

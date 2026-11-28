@@ -11,7 +11,13 @@ from docqa_core.domain.access import (
     user_principal,
 )
 from docqa_core.domain.answers import Answer, Citation
-from docqa_core.domain.documents import Chunk, Document, ScoredChunk
+from docqa_core.domain.documents import (
+    Chunk,
+    Document,
+    ParsedDocument,
+    ParsedPage,
+    ScoredChunk,
+)
 from docqa_core.domain.errors import (
     ConfigError,
     ConflictError,
@@ -24,6 +30,7 @@ from docqa_core.domain.errors import (
     ProviderTimeoutError,
     ProviderUnavailableError,
     RateLimitedError,
+    UnsupportedMediaTypeError,
 )
 from docqa_core.domain.llm import FinishReason, LLMRequest, LLMResponse, Message, Role, Usage
 
@@ -43,6 +50,8 @@ __all__ = [
     "LLMResponse",
     "Message",
     "NotFoundError",
+    "ParsedDocument",
+    "ParsedPage",
     "PermissionDeniedError",
     "Principal",
     "ProviderError",
@@ -51,6 +60,7 @@ __all__ = [
     "RateLimitedError",
     "Role",
     "ScoredChunk",
+    "UnsupportedMediaTypeError",
     "Usage",
     "group_principal",
     "user_principal",

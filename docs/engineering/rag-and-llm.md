@@ -20,7 +20,9 @@ resp = await self._llm.generate(request)  # LLMClient interface; model from sett
 
 ## Interfaces and resilience
 
-- Every model call (LLM, embedder, reranker) sits behind a small interface (`Protocol`: `LLMClient`, `Embedder`, `Reranker`) in core or the owning service. Providers are swappable, and tests inject fakes. **[Review]**
+- Every model call (LLM, embedder, reranker) and every ingestion step (parser, chunker) sits behind a `Protocol` in `docqa_core.providers`: `LLMProvider`, `Embedder`, `VectorStore`, `Reranker`, `Parser`, `Chunker`. Providers are swappable by config (`providers.<interface>.name`), and tests inject the fakes in `docqa_core.providers.fakes`. **[Review]**
+- A new provider registers with its interface's registry (`@llms.register("name")`) and must be constructible with no parameters (every parameter has a safe default). The contract suites (`libs/py-core/tests/test_core_contract_*.py`) then run against it automatically; it must pass them before merge. **[Enforced: contract tests]**
+- A vector store filters by tenant and principal set **before** ranking, with the same rule as `Principal.can_access`. The vector-store contract tests this. **[Enforced: contract tests]**
 - Each adapter implements: explicit timeout, bounded retry with jittered backoff for 429/5xx/timeouts only, circuit breaker (open on repeated failures, fast-fail with a clear error), concurrency limit, token/cost accounting.
 - Handle provider errors as domain exceptions (`LLMUnavailable`, `ContextTooLong`); never leak provider messages to clients.
 - Degrade gracefully: if the reranker is down, fall back to vector order; if the LLM is down, return a clear 503, not a guess.

@@ -101,7 +101,7 @@ log.info("ingest.chunk.completed", doc_id=str(doc_id), chunk_count=n, duration_m
 ## Module layout
 
 ```
-libs/py-core/src/docqa_core/   config/, registry, logging, telemetry, value_sets, domain/ (types, errors), db/ (models, session)
+libs/py-core/src/docqa_core/   config/, registry, providers/ (interfaces, fakes/), logging, telemetry, value_sets, domain/ (types, errors), db/ (models, session)
 services/ai-api/src/docqa_ai_api/          main, middleware, routes/, (services/, schemas/)
 services/ingestion-worker/src/docqa_workers   workflows/, activities/, worker.py
 eval/src/docqa_eval/        schema, dataset, metrics, cli

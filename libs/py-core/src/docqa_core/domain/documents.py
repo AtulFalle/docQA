@@ -25,6 +25,31 @@ class Document:
         require(bool(self.title.strip()), "document title must not be blank")
 
 
+@dataclass(frozen=True, slots=True)
+class ParsedPage:
+    """The text of one page, as a parser extracted it. Pages are numbered from 1."""
+
+    number: int
+    text: str
+
+    def __post_init__(self) -> None:
+        """Validate the page number."""
+        require(self.number >= 1, "page numbers start at 1")
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedDocument:
+    """A parsed document version: the document plus its pages, in order."""
+
+    document: Document
+    pages: tuple[ParsedPage, ...]
+
+    def __post_init__(self) -> None:
+        """Check that pages run 1, 2, 3, ... in order."""
+        numbers = [page.number for page in self.pages]
+        require(numbers == list(range(1, len(numbers) + 1)), "pages must run 1, 2, 3, ...")
+
+
 @dataclass(frozen=True, slots=True, kw_only=True)
 class Chunk:
     """A piece of one document version, the unit that is embedded and retrieved."""

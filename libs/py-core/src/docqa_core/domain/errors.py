@@ -32,6 +32,12 @@ class InvalidInputError(DocqaError):
     code = "invalid_input"
 
 
+class UnsupportedMediaTypeError(InvalidInputError):
+    """No parser handles this file type. Matches the ``unsupported_type`` rejection reason."""
+
+    code = "unsupported_type"
+
+
 class NotFoundError(DocqaError):
     """The resource does not exist, or the caller may not know that it exists."""
 

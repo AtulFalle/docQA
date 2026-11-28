@@ -17,6 +17,7 @@ from docqa_core.domain import (
     ProviderTimeoutError,
     ProviderUnavailableError,
     RateLimitedError,
+    UnsupportedMediaTypeError,
 )
 
 
@@ -25,6 +26,7 @@ from docqa_core.domain import (
     [
         (DocqaError, "internal_error", False),
         (InvalidInputError, "invalid_input", False),
+        (UnsupportedMediaTypeError, "unsupported_type", False),
         (NotFoundError, "not_found", False),
         (PermissionDeniedError, "permission_denied", False),
         (ConflictError, "conflict", False),
