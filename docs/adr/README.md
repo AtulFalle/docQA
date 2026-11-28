@@ -7,9 +7,9 @@ Decisions that shape the system are recorded here as short numbered documents. E
 | ADR | Title | Status |
 |-----|-------|--------|
 | [0001](0001-monorepo-and-stack.md) | Monorepo layout and core stack | Accepted (superseded in part by 0005) |
-| [0002](0002-deployment-target.md) | Deployment target | Proposed (decide before M2) |
-| [0003](0003-llm-and-embedding-provider.md) | LLM and embedding provider | Proposed (decide before M1 and M2) |
-| [0004](0004-data-residency.md) | Data residency | Proposed (decide before M2) |
+| [0002](0002-deployment-target.md) | Deployment target | Proposed (decide before M2; recommends portable Kubernetes) |
+| [0003](0003-llm-and-embedding-provider.md) | LLM and embedding provider | Accepted (self-hosted models) |
+| [0004](0004-data-residency.md) | Data residency | Accepted (self-hosted processing) |
 | [0005](0005-angular-nestjs-python-ai-services.md) | Angular UI, NestJS backend, Python internal AI services | Accepted |
 | [0006](0006-database-design.md) | Database design (M1 through go-live) | Accepted |
 
