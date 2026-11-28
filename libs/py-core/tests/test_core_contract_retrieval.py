@@ -9,7 +9,6 @@ from uuid import uuid4
 
 import pytest
 
-import docqa_core.providers.fakes  # noqa: F401  # registers the built-in providers
 from docqa_core.domain import Chunk, InvalidInputError, Principal, ScoredChunk
 from docqa_core.providers import (
     Embedder,
@@ -19,7 +18,11 @@ from docqa_core.providers import (
     rerankers,
     vector_stores,
 )
+from docqa_core.registry import import_plugins
 from docqa_core.value_sets import UserRole
+
+# Register the built-in providers the way the composition root does.
+import_plugins(["docqa_core.providers.fakes"])
 
 TENANT, OTHER_TENANT = uuid4(), uuid4()
 HR, LEGAL = uuid4(), uuid4()

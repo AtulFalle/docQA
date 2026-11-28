@@ -16,20 +16,16 @@ class Embedder(Protocol):
     @property
     def model(self) -> str:
         """Model name and version, recorded on every vector (provenance)."""
-        ...
 
     @property
     def dimension(self) -> int:
         """Length of every vector this embedder returns."""
-        ...
 
     async def embed_documents(self, texts: Sequence[str]) -> list[list[float]]:
         """Return one vector per text, in the same order."""
-        ...
 
     async def embed_query(self, text: str) -> list[float]:
         """Return the vector for a search query."""
-        ...
 
 
 @runtime_checkable
@@ -42,17 +38,14 @@ class VectorStore(Protocol):
 
     async def upsert(self, chunks: Sequence[Chunk], vectors: Sequence[Sequence[float]]) -> None:
         """Insert or replace chunks by id, each with its vector."""
-        ...
 
     async def search(
         self, vector: Sequence[float], *, principal: Principal, limit: int
     ) -> list[ScoredChunk]:
         """Return up to ``limit`` visible chunks, most similar first."""
-        ...
 
     async def delete_document(self, *, tenant_id: UUID, document_id: UUID) -> int:
         """Remove every chunk of one document. Return how many were removed."""
-        ...
 
 
 @runtime_checkable
@@ -63,7 +56,6 @@ class Reranker(Protocol):
         self, query: str, candidates: Sequence[ScoredChunk], *, limit: int
     ) -> list[ScoredChunk]:
         """Return up to ``limit`` of the candidates, most relevant first, with new scores."""
-        ...
 
 
 embedders: Registry[Embedder] = Registry("embedder")

@@ -17,15 +17,12 @@ class LLMProvider(Protocol):
 
     async def generate(self, request: LLMRequest) -> LLMResponse:
         """Return the whole reply at once, with the model name and usage."""
-        ...
 
     def stream(self, request: LLMRequest) -> AsyncIterator[str]:
         """Yield the reply in pieces. Joined, the pieces equal ``generate``'s text."""
-        ...
 
     async def aclose(self) -> None:
         """Release connections. Safe to call more than once."""
-        ...
 
 
 llms: Registry[LLMProvider] = Registry("llm")

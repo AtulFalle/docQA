@@ -5,9 +5,9 @@ A provider is built with no parameters here, so every parameter needs a safe def
 
 import pytest
 
-import docqa_core.providers.fakes  # noqa: F401  # registers the built-in providers
 from docqa_core.domain import LLMRequest, LLMResponse, Message, Role
 from docqa_core.providers import LLMProvider, llms
+from docqa_core.registry import import_plugins
 from docqa_core.value_sets import UsageKind
 
 REQUEST = LLMRequest(
@@ -17,6 +17,9 @@ REQUEST = LLMRequest(
     ),
     max_output_tokens=64,
 )
+
+# Register the built-in providers the way the composition root does.
+import_plugins(["docqa_core.providers.fakes"])
 
 
 @pytest.fixture(params=llms.names())

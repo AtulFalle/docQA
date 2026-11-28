@@ -15,7 +15,6 @@ class Parser(Protocol):
 
     def supports(self, media_type: str) -> bool:
         """Whether this parser handles ``media_type`` (for example ``text/markdown``)."""
-        ...
 
     def parse(self, document: Document, content: bytes, *, media_type: str) -> ParsedDocument:
         """Return the document's pages, numbered from 1.
@@ -24,7 +23,6 @@ class Parser(Protocol):
             UnsupportedMediaTypeError: If ``supports(media_type)`` is false.
             InvalidInputError: If the content cannot be read as that type.
         """
-        ...
 
 
 @runtime_checkable
@@ -34,7 +32,6 @@ class Chunker(Protocol):
     @property
     def version(self) -> str:
         """Chunker version, recorded on every chunk (provenance, ``chunks.chunker_version``)."""
-        ...
 
     def chunk(self, parsed: ParsedDocument) -> list[Chunk]:
         """Return the chunks in reading order, with ordinals from 0.
@@ -42,7 +39,6 @@ class Chunker(Protocol):
         Chunk ids are derived from the version, ordinal and text, so re-chunking the same
         version yields the same ids (idempotent ingestion).
         """
-        ...
 
 
 parsers: Registry[Parser] = Registry("parser")

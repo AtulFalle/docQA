@@ -4,7 +4,6 @@ from uuid import uuid4
 
 import pytest
 
-import docqa_core.providers.fakes  # noqa: F401  # registers the built-in providers
 from docqa_core.domain import (
     Chunk,
     Document,
@@ -13,6 +12,7 @@ from docqa_core.domain import (
     UnsupportedMediaTypeError,
 )
 from docqa_core.providers import Chunker, Parser, chunkers, parsers
+from docqa_core.registry import import_plugins
 
 DOCUMENT = Document(
     id=uuid4(), tenant_id=uuid4(), version_id=uuid4(), title="Leave policy", acl_principals=("t",)
@@ -24,6 +24,9 @@ PARSED = ParsedDocument(
         ParsedPage(2, "## Carry forward\n\nUp to 5 days carry into the next year."),
     ),
 )
+
+# Register the built-in providers the way the composition root does.
+import_plugins(["docqa_core.providers.fakes"])
 
 
 @pytest.fixture(params=parsers.names())
