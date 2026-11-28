@@ -13,6 +13,7 @@ from docqa_core.domain.access import (
 from docqa_core.domain.answers import Answer, Citation
 from docqa_core.domain.documents import Chunk, Document, ScoredChunk
 from docqa_core.domain.errors import (
+    ConfigError,
     ConflictError,
     ContextTooLongError,
     DocqaError,
@@ -31,6 +32,7 @@ __all__ = [
     "Answer",
     "Chunk",
     "Citation",
+    "ConfigError",
     "ConflictError",
     "ContextTooLongError",
     "DocqaError",

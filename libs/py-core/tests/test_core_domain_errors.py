@@ -6,6 +6,7 @@ import sys
 import pytest
 
 from docqa_core.domain import (
+    ConfigError,
     ConflictError,
     ContextTooLongError,
     DocqaError,
@@ -27,6 +28,7 @@ from docqa_core.domain import (
         (NotFoundError, "not_found", False),
         (PermissionDeniedError, "permission_denied", False),
         (ConflictError, "conflict", False),
+        (ConfigError, "config_error", False),
         (ProviderError, "provider_error", False),
         (ProviderUnavailableError, "provider_unavailable", True),
         (ProviderTimeoutError, "provider_timeout", True),

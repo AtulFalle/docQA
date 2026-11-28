@@ -72,7 +72,10 @@ except StorageUnavailable as exc:
 
 ## Configuration
 
-- All configuration comes from `docqa_core.config.Settings` (`DOCQA_*` env vars). `os.getenv` and `os.environ` are banned outside `config.py`. **[Enforced: ruff TID251]**
+- All configuration comes from `docqa_core.config.Settings`. `os.getenv` and `os.environ` are banned outside `config/settings.py`. **[Enforced: ruff TID251]**
+- Sources, highest priority first: `DOCQA_*` environment variables (nested fields use `__`, for example `DOCQA_PROVIDERS__LLM__NAME`), `.env`, the YAML file named by `DOCQA_CONFIG_FILE` (`${NAME}` and `${NAME:-default}` are expanded; see `config/docqa.example.yaml`), then defaults.
+- Invalid configuration fails at startup: `get_settings()` raises `ConfigError` listing every bad field, without echoing values.
+- Providers are chosen by name through one `docqa_core.registry.Registry` per interface (`providers.<interface>.name` and `.params`). Extra provider modules are listed in `plugins` and imported by the composition root.
 - New setting: add a typed field with a safe default or no default for secrets, and a line in `.env.example`.
 - Pass `Settings` (or the slice you need) in; never import a global.
 
@@ -98,7 +101,7 @@ log.info("ingest.chunk.completed", doc_id=str(doc_id), chunk_count=n, duration_m
 ## Module layout
 
 ```
-libs/py-core/src/docqa_core/   config, logging, telemetry, value_sets, domain/ (types, errors), db/ (models, session)
+libs/py-core/src/docqa_core/   config/, registry, logging, telemetry, value_sets, domain/ (types, errors), db/ (models, session)
 services/ai-api/src/docqa_ai_api/          main, middleware, routes/, (services/, schemas/)
 services/ingestion-worker/src/docqa_workers   workflows/, activities/, worker.py
 eval/src/docqa_eval/        schema, dataset, metrics, cli

@@ -50,6 +50,12 @@ class ConflictError(DocqaError):
     code = "conflict"
 
 
+class ConfigError(DocqaError):
+    """Configuration is invalid or incomplete. Raised at startup, so the service fails fast."""
+
+    code = "config_error"
+
+
 class ProviderError(DocqaError):
     """A model provider (LLM, embedder, reranker, parser) failed."""
 

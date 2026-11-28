@@ -124,7 +124,7 @@ mark-parentheses = false
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S", "D", "ARG", "FBT", "PLR2004", "SLF001", "TID251", "PLR0913"]
 "libs/py-core/src/docqa_core/logging.py" = ["A005", "TID251"]   # owns stdlib logging wiring
-"libs/py-core/src/docqa_core/config.py" = ["TID251"]            # the one place env is read
+"libs/py-core/src/docqa_core/config/settings.py" = ["TID251"]   # the one place env is read
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -153,6 +153,10 @@ warn_required_dynamic_aliases = true
 
 [[tool.mypy.overrides]]
 module = ["temporalio.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["yaml", "yaml.*"]   # PyYAML ships no type hints; yaml_file.py treats its output as object
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
