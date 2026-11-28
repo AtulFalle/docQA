@@ -44,7 +44,7 @@ Hitting a limit means split the function, not raise the limit. Guard clauses bea
 
 ## Error handling
 
-- Define domain exceptions in `docqa_core` (`class DocumentNotFound(DocqaError)`); raise them from services; translate at the edge (HTTP handler, Temporal error type). **[Review]**
+- Define domain exceptions in `docqa_core.domain.errors` (`class DocumentNotFoundError(NotFoundError)`); each has a stable `code` and a `retryable` flag; raise them from services; translate at the edge (HTTP handler, Temporal error type). **[Review]**
 - No bare `except:` or blind `except Exception:` unless you log with context and re-raise. **[Enforced: ruff BLE, TRY]**
 - Never swallow: no `except ...: pass`. Use `contextlib.suppress` only for a specific, expected exception. **[Enforced: ruff SIM105, S110]**
 - Raise from the cause: `raise IngestError(doc_id) from exc`. **[Enforced: ruff B904]**
@@ -72,7 +72,10 @@ except StorageUnavailable as exc:
 
 ## Configuration
 
-- All configuration comes from `docqa_core.config.Settings` (`DOCQA_*` env vars). `os.getenv` and `os.environ` are banned outside `config.py`. **[Enforced: ruff TID251]**
+- All configuration comes from `docqa_core.config.Settings`. `os.getenv` and `os.environ` are banned outside `config/settings.py`. **[Enforced: ruff TID251]**
+- Sources, highest priority first: `DOCQA_*` environment variables (nested fields use `__`, for example `DOCQA_PROVIDERS__LLM__NAME`), `.env`, the YAML file named by `DOCQA_CONFIG_FILE` (`${NAME}` and `${NAME:-default}` are expanded; see `config/docqa.example.yaml`), then defaults.
+- Invalid configuration fails at startup: `get_settings()` raises `ConfigError` listing every bad field, without echoing values.
+- Providers are chosen by name through one `docqa_core.registry.Registry` per interface (`providers.<interface>.name` and `.params`). Extra provider modules are listed in `plugins` and imported by the composition root.
 - New setting: add a typed field with a safe default or no default for secrets, and a line in `.env.example`.
 - Pass `Settings` (or the slice you need) in; never import a global.
 
@@ -98,7 +101,7 @@ log.info("ingest.chunk.completed", doc_id=str(doc_id), chunk_count=n, duration_m
 ## Module layout
 
 ```
-libs/py-core/src/docqa_core/   config, logging, telemetry, value_sets, db/ (models, session)
+libs/py-core/src/docqa_core/   config/, registry, logging, telemetry, value_sets, domain/ (types, errors), db/ (models, session)
 services/ai-api/src/docqa_ai_api/          main, middleware, routes/, (services/, schemas/)
 services/ingestion-worker/src/docqa_workers   workflows/, activities/, worker.py
 eval/src/docqa_eval/        schema, dataset, metrics, cli

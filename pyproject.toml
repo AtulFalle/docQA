@@ -124,7 +124,7 @@ mark-parentheses = false
 [tool.ruff.lint.per-file-ignores]
 "**/tests/**" = ["S", "D", "ARG", "FBT", "PLR2004", "SLF001", "TID251", "PLR0913"]
 "libs/py-core/src/docqa_core/logging.py" = ["A005", "TID251"]   # owns stdlib logging wiring
-"libs/py-core/src/docqa_core/config.py" = ["TID251"]            # the one place env is read
+"libs/py-core/src/docqa_core/config/settings.py" = ["TID251"]   # the one place env is read
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -155,6 +155,10 @@ warn_required_dynamic_aliases = true
 module = ["temporalio.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["yaml", "yaml.*"]   # PyYAML ships no type hints; yaml_file.py treats its output as object
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["libs/py-core/tests", "services/ai-api/tests", "services/ingestion-worker/tests", "eval/tests"]
 asyncio_mode = "auto"
@@ -172,7 +176,7 @@ omit = ["*/__main__.py"]
 
 [tool.coverage.report]
 # Ratchet: raise this whenever coverage goes up; never lower it without an ADR.
-fail_under = 83
+fail_under = 91
 show_missing = true
 skip_covered = true
 exclude_also = [
@@ -200,9 +204,9 @@ source_modules = ["docqa_core"]
 forbidden_modules = ["fastapi", "starlette", "uvicorn", "temporalio"]
 
 [[tool.importlinter.contracts]]
-name = "Value sets are plain Python (no ORM, validation or telemetry frameworks)"
+name = "Domain types and value sets are plain Python (no ORM, validation or telemetry frameworks)"
 type = "forbidden"
-source_modules = ["docqa_core.value_sets"]
+source_modules = ["docqa_core.domain", "docqa_core.value_sets"]
 forbidden_modules = [
     "docqa_core.db",
     "docqa_core.config",

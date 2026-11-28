@@ -1,0 +1,30 @@
+# Example docQA configuration. Point DOCQA_CONFIG_FILE at a copy of this file to use it.
+#
+# Priority, highest first: environment variables (DOCQA_*, nested with __), .env, this file,
+# built-in defaults. Strings may reference the environment: ${NAME}, or ${NAME:-default}.
+# Inside {...} or [...] (flow style), quote them: {url: "${URL}"}.
+# Unknown top-level keys are rejected at startup.
+
+env: local
+log_level: INFO
+
+# Python modules imported at startup so their @register decorators run (dotted names).
+plugins: []
+
+# Which implementation backs each interface, and the keyword parameters it is built with.
+# Every interface defaults to its fake. Override one from the environment with, for example,
+# DOCQA_PROVIDERS__LLM__NAME=openai_compat
+providers:
+  llm:
+    name: fake
+    params: {}
+  embedder:
+    name: fake
+  vector_store:
+    name: fake
+  reranker:
+    name: fake
+  parser:
+    name: fake
+  chunker:
+    name: fake

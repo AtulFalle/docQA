@@ -16,7 +16,7 @@ The browser talks only to the Angular UI and the NestJS backend. The backend is 
 | `services/ingestion-worker` | Temporal workers (Python) | Ingest: validate, extract, chunk, embed, index |
 | `eval/` | Python | Golden dataset, metrics, CLI |
 | `libs/shared/contracts` | TypeScript (`@docqa/contracts`) | Request and response types shared by web and backend |
-| `libs/py-core` | Python (`docqa-core`) | Settings, logging, telemetry, SQLAlchemy mirror of the schema |
+| `libs/py-core` | Python (`docqa-core`) | Settings (env + YAML), provider registry, domain types and errors, logging, telemetry, SQLAlchemy mirror of the schema |
 
 ### Request path
 
@@ -43,7 +43,7 @@ docqa/
 ├── apps/backend/               NestJS backend, Prisma schema and migrations (apps/backend/prisma)
 ├── apps/backend-e2e/           end-to-end tests against a running backend
 ├── libs/shared/contracts/      @docqa/contracts: shared TypeScript types
-├── libs/py-core/               docqa-core: settings, logging, telemetry, DB models
+├── libs/py-core/               docqa-core: settings, registry, domain types, logging, telemetry, DB models
 ├── services/ai-api/            docqa-ai-api: internal FastAPI AI service
 ├── services/ingestion-worker/  docqa-workers: Temporal workflows and activities
 ├── eval/                       docqa-eval: golden dataset, metrics, CLI, sample corpus
