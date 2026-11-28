@@ -76,12 +76,18 @@ jobs:
         include:
           - name: web
             dockerfile: apps/web/Dockerfile
+            # Rebuilt without cache so OS security upgrades are always current.
+            no-cache-filters: runtime
           - name: backend
             dockerfile: apps/backend/Dockerfile
           - name: ai-api
             dockerfile: services/ai-api/Dockerfile
+            # Rebuilt without cache so OS security upgrades are always current.
+            no-cache-filters: runtime
           - name: ingestion-worker
             dockerfile: services/ingestion-worker/Dockerfile
+            # Rebuilt without cache so OS security upgrades are always current.
+            no-cache-filters: runtime
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
@@ -90,6 +96,7 @@ jobs:
         with:
           context: .
           file: ${{ matrix.dockerfile }}
+          no-cache-filters: ${{ matrix.no-cache-filters }}
           load: true
           tags: docqa-${{ matrix.name }}:scan
           cache-from: type=gha,scope=${{ matrix.name }}
