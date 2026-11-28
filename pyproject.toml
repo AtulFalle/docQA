@@ -200,9 +200,9 @@ source_modules = ["docqa_core"]
 forbidden_modules = ["fastapi", "starlette", "uvicorn", "temporalio"]
 
 [[tool.importlinter.contracts]]
-name = "Value sets are plain Python (no ORM, validation or telemetry frameworks)"
+name = "Domain types and value sets are plain Python (no ORM, validation or telemetry frameworks)"
 type = "forbidden"
-source_modules = ["docqa_core.value_sets"]
+source_modules = ["docqa_core.domain", "docqa_core.value_sets"]
 forbidden_modules = [
     "docqa_core.db",
     "docqa_core.config",

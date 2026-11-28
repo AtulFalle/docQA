@@ -44,7 +44,7 @@ Hitting a limit means split the function, not raise the limit. Guard clauses bea
 
 ## Error handling
 
-- Define domain exceptions in `docqa_core` (`class DocumentNotFound(DocqaError)`); raise them from services; translate at the edge (HTTP handler, Temporal error type). **[Review]**
+- Define domain exceptions in `docqa_core.domain.errors` (`class DocumentNotFoundError(NotFoundError)`); each has a stable `code` and a `retryable` flag; raise them from services; translate at the edge (HTTP handler, Temporal error type). **[Review]**
 - No bare `except:` or blind `except Exception:` unless you log with context and re-raise. **[Enforced: ruff BLE, TRY]**
 - Never swallow: no `except ...: pass`. Use `contextlib.suppress` only for a specific, expected exception. **[Enforced: ruff SIM105, S110]**
 - Raise from the cause: `raise IngestError(doc_id) from exc`. **[Enforced: ruff B904]**
@@ -98,7 +98,7 @@ log.info("ingest.chunk.completed", doc_id=str(doc_id), chunk_count=n, duration_m
 ## Module layout
 
 ```
-libs/py-core/src/docqa_core/   config, logging, telemetry, value_sets, db/ (models, session)
+libs/py-core/src/docqa_core/   config, logging, telemetry, value_sets, domain/ (types, errors), db/ (models, session)
 services/ai-api/src/docqa_ai_api/          main, middleware, routes/, (services/, schemas/)
 services/ingestion-worker/src/docqa_workers   workflows/, activities/, worker.py
 eval/src/docqa_eval/        schema, dataset, metrics, cli
