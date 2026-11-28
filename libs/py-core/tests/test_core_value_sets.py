@@ -101,3 +101,14 @@ def test_check_constraints_match_python_enums() -> None:
         if found[name] != {m.value for m in py_enum}
     ]
     assert not problems, "\n".join(problems)
+
+
+def test_db_enum_module_re_exports_the_shared_value_sets():
+    from docqa_core import value_sets
+    from docqa_core.db.models import enums
+
+    assert enums.__all__ == sorted(enums.__all__)
+    for name in enums.__all__:
+        assert getattr(enums, name) is getattr(value_sets, name)
+    shared = {name for name, obj in vars(value_sets).items() if isinstance(obj, enum.EnumType)}
+    assert shared == set(enums.__all__)

@@ -200,6 +200,22 @@ source_modules = ["docqa_core"]
 forbidden_modules = ["fastapi", "starlette", "uvicorn", "temporalio"]
 
 [[tool.importlinter.contracts]]
+name = "Value sets are plain Python (no ORM, validation or telemetry frameworks)"
+type = "forbidden"
+source_modules = ["docqa_core.value_sets"]
+forbidden_modules = [
+    "docqa_core.db",
+    "docqa_core.config",
+    "docqa_core.logging",
+    "docqa_core.telemetry",
+    "sqlalchemy",
+    "pydantic",
+    "pydantic_settings",
+    "structlog",
+    "opentelemetry",
+]
+
+[[tool.importlinter.contracts]]
 name = "Services and eval are independent of each other"
 type = "independence"
 modules = ["docqa_ai_api", "docqa_workers", "docqa_eval"]
